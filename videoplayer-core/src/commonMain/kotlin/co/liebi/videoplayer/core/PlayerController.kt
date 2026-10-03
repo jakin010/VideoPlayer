@@ -101,13 +101,17 @@ public fun interface SourceRefresher {
 
 /**
  * Creates an app-owned controller. The app calls [PlayerController.release] when done,
- * for example in `ViewModel.onCleared`.
+ * for example in `ViewModel.onCleared`. For players in lazy lists, prefer [rememberPlayerController].
+ *
+ * @param coordinator The coordinator this player belongs to (§14).
  */
 public fun PlayerController(
     configuration: PlayerConfiguration = PlayerConfiguration(),
     sourceRefresher: SourceRefresher? = null,
+    coordinator: PlayerCoordinator = PlayerCoordinator.Default,
 ): PlayerController = DefaultPlayerController(
     configuration = configuration,
     sourceRefresher = sourceRefresher,
     engineFactory = { createPlatformEngine(configuration.buffering) },
+    coordinator = coordinator,
 )

@@ -17,6 +17,23 @@ controller.selectItem("intro")
 VideoPlayer(controller, aspectRatio = VideoAspectRatio.Ratio16x9, poster = { MyPoster() })
 ```
 
+Feeds and other screens with several players use coordinator-owned controllers. The coordinator suspends and releases them when they scroll away, so the app doesn't release them:
+
+```kotlin
+val coordinator = remember { PlayerCoordinator(CoordinatorConfig(singleActivePlayer = true, maxActivePlayers = 3)) }
+
+LazyColumn {
+    items(videos, key = { it.id }) { video ->
+        val controller = rememberPlayerController(key = video.id, coordinator = coordinator)
+        LaunchedEffect(controller) {
+            controller.setItems(listOf(video))
+            controller.selectItem(video.id)
+        }
+        VideoPlayer(controller)
+    }
+}
+```
+
 ## Implementation status
 
 | Spec section | Status |
@@ -27,13 +44,15 @@ VideoPlayer(controller, aspectRatio = VideoAspectRatio.Ratio16x9, poster = { MyP
 | Instant switch-back: recently played items stay prepared in memory (`LifecycleConfig.keepPreparedItems`, default 1) | Done |
 | §11 Default controls: `PlayerControls`, `PlayPauseButton`, `MuteButton`, `PlayerScrubber` | Done. UI-tested on iOS |
 | §11 Auto-hide (`ControlsVisibility`), gestures (`VideoGestures`: tap, double-tap seek, hold to pause), `SeekIndicator`, `LoadingIndicator`, `ErrorPanel`, `VideoPlayer` | Done. UI-tested on iOS |
-| §12 Fullscreen, §13 audio focus and session, background, keep-awake, §14 `PlayerCoordinator` | Not started |
+| §14 `PlayerCoordinator`: registry, merged events, single active player, native player cap, owned controllers (`rememberPlayerController`), shared iOS audio session; keep screen awake while playing | Done, unit-tested in common code |
+| §12 Fullscreen, §13 audio focus, interruptions and background | Not started |
 
 Known platform behavior:
 - iOS needs HTTP byte-range support for progressive MP4 (an Apple requirement). Hosts that ignore `Range` fail on iOS with `ErrorCategory.Http` (`AVFoundationErrorDomain -11850`); Android plays them. The fix is on the server.
 - iOS custom headers use the undocumented `AVURLAssetHTTPHeaderFieldsKey` option (open decision §19.1). Cookies and signed URLs are the robust choices.
 - `MediaSource.Resource` takes the URI from the generated resource accessor, `Res.getUri("files/intro.mp4")`. The library can't resolve another module's resource paths itself.
-- Until §13 lands, iOS uses the default audio session, so muted autoplay can still interrupt other apps' audio.
+- On iOS the coordinator keeps the audio session ambient (mixing with other apps, silenced by the ring switch) until an unmuted player plays, then switches to playback. Set `CoordinatorConfig.manageAudioSession = false` if the app manages the session itself.
+- The native player cap counts each player's current item plus items kept prepared. When every other player is playing, the cap is exceeded and a warning is logged rather than stopping playback.
 - On the Android emulator, video uses the software decoder: the emulator's goldfish decoder corrupts frames when HLS switches resolution. Real devices are unaffected.
 - There is no disk cache or offline playback; that is the app's responsibility.
 
@@ -44,7 +63,7 @@ Known platform behavior:
 | [`videoplayer-core`](videoplayer-core) | `co.liebi.videoplayer:videoplayer-core` | Public API (`PlayerController`, state, events, configuration), `VideoPlayerSurface`, and the platform playback engines (Media3 / AVFoundation). The common state machine is in `internal/DefaultPlayerController.kt` |
 | [`videoplayer-ui`](videoplayer-ui) | `co.liebi.videoplayer:videoplayer-ui` | Default controls, `VideoPlayer`, gestures, fullscreen host and localizable strings. Optional: apps with fully custom controls only need `videoplayer-core` |
 | [`videoplayer-test`](videoplayer-test) | `co.liebi.videoplayer:videoplayer-test` | Test doubles (`FakePlayerController`) for app tests and `@Preview` |
-| [`videoplayer-sample`](videoplayer-sample) | not published | Android and iOS test app with HLS, MP4 and a broken URL. It shows live state and an event log |
+| [`videoplayer-sample`](videoplayer-sample) | not published | Android and iOS test app. The Player tab has HLS, MP4 and a broken URL with live state and an event log. The Coordinator tab is a feed of five streams with single-active, cap and autoplay switches and the merged event log. All players start muted |
 | [`build-logic`](build-logic) | not published | Gradle convention plugins |
 
 ```

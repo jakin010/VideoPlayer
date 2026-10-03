@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Apple's legacy HLS test stream is only served over plain HTTP. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">qthttp.apple.com.edgesuite.net</domain>
+    </domain-config>
+</network-security-config>

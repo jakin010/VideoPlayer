@@ -9,7 +9,8 @@ import platform.darwin.dispatch_get_main_queue
 internal actual fun createPlatformEngine(buffering: BufferingConfig): PlaybackEngine = AVPlaybackEngine(buffering)
 
 internal actual fun logWarning(message: String) {
-    NSLog("[LiebiVideoPlayer] %@", message)
+    // Kotlin strings passed as NSLog varargs crash, so the message becomes the format with % escaped.
+    NSLog("[LiebiVideoPlayer] ${message.replace("%", "%%")}")
 }
 
 internal fun onMainThread(block: () -> Unit) {

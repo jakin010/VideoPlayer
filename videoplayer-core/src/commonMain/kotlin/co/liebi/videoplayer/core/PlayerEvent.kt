@@ -23,6 +23,12 @@ public data class PlayerEvent(
 
 public sealed interface PlayerEventType {
 
+    /** The player joined its coordinator. Seen on `PlayerCoordinator.events`. */
+    public data object PlayerRegistered : PlayerEventType
+
+    /** The player left its coordinator after release. Seen on `PlayerCoordinator.events`; nothing follows. */
+    public data object PlayerUnregistered : PlayerEventType
+
     /** The lifecycle moved from Active to Suspended. */
     public data object PlayerSuspended : PlayerEventType
 

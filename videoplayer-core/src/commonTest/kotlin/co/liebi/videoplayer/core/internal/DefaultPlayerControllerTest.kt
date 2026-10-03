@@ -1,6 +1,7 @@
 package co.liebi.videoplayer.core.internal
 
 import androidx.compose.ui.unit.IntSize
+import co.liebi.videoplayer.core.CoordinatorConfig
 import co.liebi.videoplayer.core.CredentialsRefreshTrigger
 import co.liebi.videoplayer.core.ErrorCategory
 import co.liebi.videoplayer.core.LifecycleConfig
@@ -10,6 +11,7 @@ import co.liebi.videoplayer.core.PauseReason
 import co.liebi.videoplayer.core.PlaybackConfig
 import co.liebi.videoplayer.core.PlaybackStatus
 import co.liebi.videoplayer.core.PlayerConfiguration
+import co.liebi.videoplayer.core.PlayerCoordinator
 import co.liebi.videoplayer.core.PlayerEvent
 import co.liebi.videoplayer.core.PlayerEventType
 import co.liebi.videoplayer.core.PlayerEventType.BufferingEnded
@@ -723,6 +725,7 @@ class DefaultPlayerControllerTest {
             configuration = configuration,
             sourceRefresher = refresher,
             engineFactory = { FakePlaybackEngine().also { engines += it } },
+            coordinator = PlayerCoordinator(CoordinatorConfig(), audioSession = { }, log = { warnings += it }),
             dispatcher = StandardTestDispatcher(scope.testScheduler),
             clock = FixedClock,
             timeSource = scope.testScheduler.timeSource,

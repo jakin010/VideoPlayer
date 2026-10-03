@@ -1,241 +1,43 @@
 package co.liebi.videoplayer.sample
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import co.liebi.videoplayer.core.MediaItem
-import co.liebi.videoplayer.core.MediaSource
-import co.liebi.videoplayer.core.PlayerController
-import co.liebi.videoplayer.core.PlayerEvent
-import co.liebi.videoplayer.core.PlayerState
-import co.liebi.videoplayer.core.VideoAspectRatio
-import co.liebi.videoplayer.ui.VideoPlayer
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
-private val SampleItems = listOf(
-    MediaItem(
-        id = "hls",
-        source = MediaSource.Url("https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"),
-        title = "HLS VOD (Mux test stream)",
-    ),
-    MediaItem(
-        id = "mp4",
-        source = MediaSource.Url("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_2MB.mp4"),
-        title = "MP4 1080p, 10 s",
-    ),
-    MediaItem(
-        id = "broken",
-        source = MediaSource.Url("https://test-streams.mux.dev/does-not-exist.m3u8"),
-        title = "Broken URL (404)",
-    ),
-)
-
-private val AspectRatios = listOf(
-    "16:9" to VideoAspectRatio.Ratio16x9,
-    "4:3" to VideoAspectRatio.Ratio4x3,
-    "1:1" to VideoAspectRatio.Ratio1x1,
-    "9:16" to VideoAspectRatio.Ratio9x16,
-    "Native" to VideoAspectRatio.Native,
-)
-
-private val Speeds = listOf(1f, 1.5f, 2f, 0.5f)
-
-/** App-owned controller: it survives Android configuration changes and is released with the ViewModel. */
-class PlayerViewModel : ViewModel() {
-    val controller: PlayerController = PlayerController()
-
-    init {
-        controller.setItems(SampleItems)
-        controller.selectItem(SampleItems.first().id)
-    }
-
-    override fun onCleared() {
-        controller.release()
-    }
-}
+private val Tabs = listOf("Player", "Coordinator")
 
 @Composable
 fun App() {
     MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
-        val viewModel = viewModel { PlayerViewModel() }
         // Surface provides the matching content color for text in light and dark themes.
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            PlayerScreen(viewModel.controller)
-        }
-    }
-}
-
-@Composable
-fun PlayerScreen(controller: PlayerController) {
-    val state by controller.state.collectAsState()
-    val currentItem = SampleItems.firstOrNull { it.id == state.currentItemId }
-    var aspectRatio by remember { mutableStateOf(AspectRatios.first().second) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .safeContentPadding()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        VideoPlayer(
-            controller = controller,
-            modifier = Modifier.background(Color.Black),
-            aspectRatio = aspectRatio,
-            poster = { Poster(currentItem?.title) },
-        )
-
-        AspectRatioSwitch(
-            selected = aspectRatio,
-            onSelect = { aspectRatio = it },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        )
-
-        DebugControls(controller, state, Modifier.padding(horizontal = 16.dp))
-
-        FlowRow(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            SampleItems.forEach { item ->
-                FilterChip(
-                    selected = item.id == state.currentItemId,
-                    onClick = { controller.selectItem(item.id) },
-                    label = { Text(item.title.orEmpty()) },
-                )
+            var tab by rememberSaveable { mutableIntStateOf(0) }
+            Column(Modifier.fillMaxSize().safeContentPadding()) {
+                PrimaryTabRow(selectedTabIndex = tab) {
+                    Tabs.forEachIndexed { index, title ->
+                        Tab(selected = tab == index, onClick = { tab = index }, text = { Text(title) })
+                    }
+                }
+                when (tab) {
+                    0 -> PlayerScreen(viewModel { PlayerViewModel() }.controller)
+                    else -> CoordinatorScreen(viewModel { CoordinatorViewModel() })
+                }
             }
         }
-
-        StateSummary(state, Modifier.padding(horizontal = 16.dp))
-        HorizontalDivider()
-        EventLog(controller, Modifier.padding(horizontal = 16.dp))
     }
-}
-
-@Composable
-private fun AspectRatioSwitch(
-    selected: VideoAspectRatio,
-    onSelect: (VideoAspectRatio) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    SingleChoiceSegmentedButtonRow(modifier) {
-        AspectRatios.forEachIndexed { index, (label, ratio) ->
-            SegmentedButton(
-                selected = ratio == selected,
-                onClick = { onSelect(ratio) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = AspectRatios.size),
-                icon = {},
-                label = { Text(label, fontSize = 12.sp) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun Poster(title: String?) {
-    Box(Modifier.fillMaxSize().background(Color.DarkGray), contentAlignment = Alignment.TopStart) {
-        Text(title.orEmpty(), color = Color.White, modifier = Modifier.padding(12.dp))
-    }
-}
-
-/** Test-only commands that the default controls don't cover. */
-@Composable
-private fun DebugControls(controller: PlayerController, state: PlayerState, modifier: Modifier) {
-    val progress by controller.progress.collectAsState()
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            "${progress.position.format()} / ${(state.duration ?: Duration.ZERO).format()}  ·  buffered ${progress.bufferedPosition.format()}",
-            fontSize = 12.sp,
-        )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { controller.seekTo(controller.progress.value.position - 10.seconds) }) { Text("-10 s") }
-            OutlinedButton(onClick = { controller.seekTo(controller.progress.value.position + 10.seconds) }) { Text("+10 s") }
-            OutlinedButton(onClick = {
-                val next = Speeds[(Speeds.indexOf(state.playbackSpeed) + 1) % Speeds.size]
-                controller.setPlaybackSpeed(next)
-            }) { Text("${state.playbackSpeed}x") }
-            OutlinedButton(onClick = controller::suspend) { Text("Suspend") }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Switch(checked = state.autoReplay, onCheckedChange = controller::setAutoReplay)
-            Text("Auto replay")
-        }
-    }
-}
-
-@Composable
-private fun StateSummary(state: PlayerState, modifier: Modifier) {
-    val text = buildString {
-        append("status=${state.status} playWhenReady=${state.playWhenReady} isPlaying=${state.isPlaying}")
-        append("\npauseReason=${state.pauseReason} lifecycle=${state.lifecycle} seeking=${state.isSeeking}")
-        append("\nvideoSize=${state.videoSize?.let { "${it.width}x${it.height}" }} firstFrame=${state.isFirstFrameRendered}")
-        append(" muted=${state.isMuted} retry=${state.retryAttempt} error=${state.error?.category}")
-    }
-    Text(text, modifier = modifier, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
-}
-
-@Composable
-private fun EventLog(controller: PlayerController, modifier: Modifier) {
-    val events = remember(controller) { mutableStateListOf<PlayerEvent>() }
-    LaunchedEffect(controller) {
-        controller.events.collect { event ->
-            events.add(0, event)
-            if (events.size > 40) events.removeAt(events.lastIndex)
-        }
-    }
-    Column(modifier) {
-        events.forEach { event ->
-            Text(
-                text = "${event.position?.format() ?: "--:--"}  ${event.type}",
-                fontFamily = FontFamily.Monospace,
-                fontSize = 11.sp,
-            )
-        }
-    }
-}
-
-private fun Duration.format(): String {
-    val totalSeconds = inWholeSeconds
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return "$minutes:${seconds.toString().padStart(2, '0')}"
 }

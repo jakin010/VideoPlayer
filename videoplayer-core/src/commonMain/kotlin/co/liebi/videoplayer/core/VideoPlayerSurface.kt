@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.runtime.collectAsState
 import co.liebi.videoplayer.core.internal.DefaultPlayerController
+import co.liebi.videoplayer.core.internal.KeepScreenAwake
 import co.liebi.videoplayer.core.internal.PlatformVideoSurface
 import kotlinx.coroutines.delay
 import kotlin.math.abs
@@ -57,7 +58,8 @@ public fun VideoPlayerSurface(
     ) {
         // Starts visible: before any video has shown there is no frame to keep on screen.
         val posterVisible = remember(controller) { mutableStateOf(true) }
-        val isRendering = (controller as? DefaultPlayerController)?.let {
+        val defaultController = controller as? DefaultPlayerController
+        val isRendering = defaultController?.let {
             AttachedVideo(
                 controller = it,
                 videoSize = videoSize,
@@ -66,6 +68,7 @@ public fun VideoPlayerSurface(
             )
         } ?: false
         val videoVisible = isRendering && state.isFirstFrameRendered
+        KeepScreenAwake(isRendering && state.isPlaying && defaultController.keepsScreenAwake)
         LaunchedEffect(videoVisible, posterDelay) {
             if (videoVisible) {
                 posterVisible.value = false

@@ -9,6 +9,7 @@ import co.liebi.videoplayer.core.PauseReason
 import co.liebi.videoplayer.core.PlaybackConfig
 import co.liebi.videoplayer.core.PlaybackProgress
 import co.liebi.videoplayer.core.PlaybackStatus
+import co.liebi.videoplayer.core.PlayerCoordinator
 import co.liebi.videoplayer.core.PlayerConfiguration
 import co.liebi.videoplayer.core.PlayerController
 import co.liebi.videoplayer.core.PlayerError
@@ -52,6 +53,9 @@ internal class DefaultPlayerController(
     private val configuration: PlayerConfiguration,
     private val sourceRefresher: SourceRefresher?,
     private val engineFactory: () -> PlaybackEngine,
+    private val coordinator: PlayerCoordinator,
+    /** Set for coordinator-owned controllers, which the coordinator releases after retention (§8). */
+    private val ownerKey: String? = null,
     dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
     private val clock: Clock = Clock.System,
     private val timeSource: TimeSource = TimeSource.Monotonic,
@@ -126,8 +130,25 @@ internal class DefaultPlayerController(
     private var inOperation = false
     private val deferred = ArrayDeque<() -> Unit>()
 
-    private val isReleased: Boolean
+    val isReleased: Boolean
         get() = _state.value.lifecycle == PlayerLifecycle.Released
+
+    /** Native players held: the current engine plus items kept prepared. Counted against the coordinator's cap. */
+    val nativePlayerCount: Int
+        get() = (if (_engine.value != null) 1 else 0) + preparedItems.size
+
+    /**
+     * Meant to play with sound, which needs the playback audio session. Follows intent rather than
+     * [PlayerState.isPlaying], so stalls don't flip the session back and forth.
+     */
+    val isAudible: Boolean
+        get() = _state.value.let {
+            it.playWhenReady && it.lifecycle == PlayerLifecycle.Active && it.status != PlaybackStatus.Error &&
+                !it.isMuted && it.volume > 0f
+        }
+
+    val keepsScreenAwake: Boolean
+        get() = configuration.lifecycle.keepScreenAwakeWhilePlaying
 
     private val currentItem: MediaItem?
         get() = _state.value.currentItemId?.let { id -> items.firstOrNull { it.id == id } }
@@ -305,6 +326,7 @@ internal class DefaultPlayerController(
                 )
             }
             scope.cancel()
+            coordinator.unregister(this)
         }
     }
 
@@ -317,6 +339,7 @@ internal class DefaultPlayerController(
         surfaces.remove(token)
         surfaces.add(token)
         _activeSurface.value = token
+        coordinator.touch(this)
         suspendJob?.cancel()
         suspendJob = null
         if (_state.value.lifecycle == PlayerLifecycle.Suspended) resume()
@@ -325,13 +348,15 @@ internal class DefaultPlayerController(
     fun detachSurface(token: Any) = operation {
         if (!surfaces.remove(token)) return@operation
         _activeSurface.value = surfaces.lastOrNull()
-        if (surfaces.isEmpty() && _state.value.lifecycle == PlayerLifecycle.Active) {
-            // Debounced so scrolling back and forth does not thrash the decoder (§8).
-            suspendJob?.cancel()
-            suspendJob = scope.launch {
-                delay(SuspendDebounce)
-                operation { suspendNow() }
-            }
+        if (surfaces.isEmpty() && _state.value.lifecycle == PlayerLifecycle.Active) scheduleSuspend()
+    }
+
+    /** Debounced so scrolling back and forth does not thrash the decoder (§8). */
+    private fun scheduleSuspend() {
+        suspendJob?.cancel()
+        suspendJob = scope.launch {
+            delay(SuspendDebounce)
+            operation { suspendNow() }
         }
     }
 
@@ -547,6 +572,7 @@ internal class DefaultPlayerController(
         }
         updateProgressTicker(s.isPlaying)
         publishProgress()
+        coordinator.onPlaybackChanged()
     }
 
     /** Loads the current item. A recovery reload keeps the first-frame state, error and retry counter. */
@@ -602,9 +628,14 @@ internal class DefaultPlayerController(
         emit(PlayerEventType.PlayerSuspended)
         retentionJob = scope.launch {
             delay(configuration.lifecycle.positionRetention)
-            operation {
-                positionMemory.clear()
-                lastPosition = currentItem?.startPosition ?: Duration.ZERO
+            if (ownerKey != null) {
+                // Nothing reattached in time: the coordinator lets go of its controller.
+                release()
+            } else {
+                operation {
+                    positionMemory.clear()
+                    lastPosition = currentItem?.startPosition ?: Duration.ZERO
+                }
             }
         }
     }
@@ -638,6 +669,7 @@ internal class DefaultPlayerController(
         if (_state.value.playWhenReady) return
         startedForIntent = false
         _state.update { it.copy(playWhenReady = true, pauseReason = null) }
+        coordinator.onPlayIntent(this)
     }
 
     /** Records why play intent was cleared. A user pause is never replaced by an automatic reason (§4). */
@@ -813,7 +845,10 @@ internal class DefaultPlayerController(
         }
     }
 
-    private fun ensureEngine(): PlaybackEngine = _engine.value ?: engineFactory().also { engine ->
+    private fun ensureEngine(): PlaybackEngine = _engine.value ?: run {
+        coordinator.ensureCapacity(this)
+        engineFactory()
+    }.also { engine ->
         _engine.value = engine
         engine.setListener(Callbacks(engine))
         engine.setVolume(effectiveVolume())
@@ -867,16 +902,41 @@ internal class DefaultPlayerController(
     )
 
     private fun emit(type: PlayerEventType) {
+        val event = newEvent(type)
+        _events.tryEmit(event)
+        coordinator.forward(event)
+    }
+
+    // endregion
+
+    // region Coordinator
+
+    fun newEvent(type: PlayerEventType): PlayerEvent {
         val itemId = _state.value.currentItemId
-        _events.tryEmit(
-            PlayerEvent(
-                playerId = id,
-                itemId = itemId,
-                position = if (itemId != null) currentPosition() else null,
-                timestamp = clock.now(),
-                type = type,
-            ),
+        return PlayerEvent(
+            playerId = id,
+            itemId = itemId,
+            position = if (itemId != null) currentPosition() else null,
+            timestamp = clock.now(),
+            type = type,
         )
+    }
+
+    /** Another player became the active one (§14). */
+    fun pauseForCoordinator() = operation {
+        if (!isReleased && _state.value.playWhenReady) clearPlayIntent(PauseReason.Coordinator)
+    }
+
+    /** Frees items kept for instant switch-back, to stay within the coordinator's cap. */
+    fun dropPreparedItems() {
+        releasePreparedItems()
+    }
+
+    init {
+        // Last, once every property is initialized.
+        coordinator.register(this)
+        // An owned controller that never gets a surface is suspended and released like one scrolled away.
+        if (ownerKey != null) scheduleSuspend()
     }
 
     // endregion

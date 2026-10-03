@@ -1,0 +1,81 @@
+# LiebiVideoPlayer
+
+A Compose Multiplatform library for playing local and remote video (MP4 and HLS VOD) on **Android** and **iOS** behind one common API.
+Playback runs on Media3 ExoPlayer on Android and AVFoundation `AVPlayer` on iOS. Shared behavior lives in common code.
+
+> Status: early development (v1 spec). Private repository; the API isn't stable yet.
+
+## Usage
+
+```kotlin
+// App-owned controller, e.g. in a ViewModel. Call release() in onCleared().
+val controller = PlayerController()
+controller.setItems(listOf(MediaItem(id = "intro", source = MediaSource.Url("https://example.com/intro.m3u8"))))
+controller.selectItem("intro")
+
+// In composition: the video with controls, auto-hide and gestures wired
+VideoPlayer(controller, aspectRatio = VideoAspectRatio.Ratio16x9, poster = { MyPoster() })
+```
+
+## Implementation status
+
+| Spec section | Status |
+|---|---|
+| §3–§9 Public API, state model, buffering, seeking, playlist and position memory, suspension and retention, errors and retry, credential refresh | Done, unit-tested in common code |
+| §10 `VideoPlayerSurface`: aspect ratio, content scale, poster, surface handoff | Done |
+| §15–§17 Events, configuration, `FakePlayerController` | Done |
+| Instant switch-back: recently played items stay prepared in memory (`LifecycleConfig.keepPreparedItems`, default 1) | Done |
+| §11 Default controls: `PlayerControls`, `PlayPauseButton`, `MuteButton`, `PlayerScrubber` | Done. UI-tested on iOS |
+| §11 Auto-hide (`ControlsVisibility`), gestures (`VideoGestures`: tap, double-tap seek, hold to pause), `SeekIndicator`, `LoadingIndicator`, `ErrorPanel`, `VideoPlayer` | Done. UI-tested on iOS |
+| §12 Fullscreen, §13 audio focus and session, background, keep-awake, §14 `PlayerCoordinator` | Not started |
+
+Known platform behavior:
+- iOS needs HTTP byte-range support for progressive MP4 (an Apple requirement). Hosts that ignore `Range` fail on iOS with `ErrorCategory.Http` (`AVFoundationErrorDomain -11850`); Android plays them. The fix is on the server.
+- iOS custom headers use the undocumented `AVURLAssetHTTPHeaderFieldsKey` option (open decision §19.1). Cookies and signed URLs are the robust choices.
+- `MediaSource.Resource` takes the URI from the generated resource accessor, `Res.getUri("files/intro.mp4")`. The library can't resolve another module's resource paths itself.
+- Until §13 lands, iOS uses the default audio session, so muted autoplay can still interrupt other apps' audio.
+- On the Android emulator, video uses the software decoder: the emulator's goldfish decoder corrupts frames when HLS switches resolution. Real devices are unaffected.
+- There is no disk cache or offline playback; that is the app's responsibility.
+
+## Modules
+
+| Module | Artifact | Purpose |
+|---|---|---|
+| [`videoplayer-core`](videoplayer-core) | `co.liebi.videoplayer:videoplayer-core` | Public API (`PlayerController`, state, events, configuration), `VideoPlayerSurface`, and the platform playback engines (Media3 / AVFoundation). The common state machine is in `internal/DefaultPlayerController.kt` |
+| [`videoplayer-ui`](videoplayer-ui) | `co.liebi.videoplayer:videoplayer-ui` | Default controls, `VideoPlayer`, gestures, fullscreen host and localizable strings. Optional: apps with fully custom controls only need `videoplayer-core` |
+| [`videoplayer-test`](videoplayer-test) | `co.liebi.videoplayer:videoplayer-test` | Test doubles (`FakePlayerController`) for app tests and `@Preview` |
+| [`videoplayer-sample`](videoplayer-sample) | not published | Android and iOS test app with HLS, MP4 and a broken URL. It shows live state and an event log |
+| [`build-logic`](build-logic) | not published | Gradle convention plugins |
+
+```
+videoplayer-ui ──► videoplayer-core ◄── videoplayer-test
+       ▲                  ▲
+       └── videoplayer-sample
+```
+
+## Requirements
+
+- Android SDK: set `sdk.dir` in `local.properties`, or open the project in Android Studio and it sets this for you.
+- Xcode, for the iOS sample.
+- JDK: Gradle provisions JDK 21 for its daemon automatically (see `gradle/gradle-daemon-jvm.properties`).
+
+## Building
+
+| Task | Command |
+|---|---|
+| Android sample | `./gradlew :videoplayer-sample:androidApp:installDebug` |
+| iOS sample | Open `videoplayer-sample/iosApp/iosApp.xcodeproj` in Xcode and run it |
+| All tests | `./gradlew allTests` |
+| Core tests on JVM / iOS simulator | `./gradlew :videoplayer-core:testAndroidHostTest` / `./gradlew :videoplayer-core:iosSimulatorArm64Test` |
+| Publish to Maven Local | `./gradlew publishToMavenLocal` |
+
+## Project conventions
+
+- Library modules apply the `liebi.kmp.library` convention plugin from `build-logic`. It sets up:
+  - the Android, `iosArm64` and `iosSimulatorArm64` targets
+  - explicit API mode
+  - JVM 11 bytecode
+  - `maven-publish`
+  - an Android namespace taken from the module name (`videoplayer-core` → `co.liebi.videoplayer.core`)
+- Dependency versions live in [`gradle/libs.versions.toml`](gradle/libs.versions.toml). Group and version live in [`gradle.properties`](gradle.properties).
+- UI strings and icons are Compose resources in `videoplayer-ui/src/commonMain/composeResources/`. Strings go in `values/` and icons in `drawable/`.

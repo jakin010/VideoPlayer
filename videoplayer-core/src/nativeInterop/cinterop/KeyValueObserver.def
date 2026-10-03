@@ -1,0 +1,13 @@
+# Kotlin/Native only exposes -observeValueForKeyPath:ofObject:change:context: as an NSObject extension,
+# which cannot be overridden. Declaring it in a protocol lets a Kotlin class implement the KVO callback.
+language = Objective-C
+package = co.liebi.videoplayer.core.internal.kvo
+---
+#import <Foundation/Foundation.h>
+
+@protocol LVPKeyValueObserver
+- (void)observeValueForKeyPath:(NSString * _Nullable)keyPath
+                      ofObject:(id _Nullable)object
+                        change:(NSDictionary<NSKeyValueChangeKey, id> * _Nullable)change
+                       context:(void * _Nullable)context;
+@end

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application>
+        <!-- Captures the application context so controllers can be created from common code. -->
+        <provider
+            android:name="co.liebi.videoplayer.core.internal.VideoPlayerContextProvider"
+            android:authorities="${applicationId}.liebi-videoplayer"
+            android:exported="false" />
+    </application>
+
+</manifest>

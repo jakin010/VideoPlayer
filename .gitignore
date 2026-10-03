@@ -1,0 +1,31 @@
+# Gradle
+.gradle/
+**/build/
+!src/**/build/
+.kotlin/
+local.properties
+
+# IntelliJ / Android Studio / Fleet
+.idea/
+*.iml
+*.ipr
+*.iws
+.fleet/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Xcode
+xcuserdata/
+DerivedData/
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+**/xcshareddata/WorkspaceSettings.xcsettings
+
+# OS / tooling
+.DS_Store
+*.hprof
+node_modules/

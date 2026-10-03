@@ -48,8 +48,8 @@ public fun PlayerControls(
             AnimatedVisibility(
                 visible = visibility.isVisible,
                 modifier = modifier,
-                enter = fadeIn(tween(150)),
-                exit = fadeOut(tween(250)),
+                enter = ControlsEnter,
+                exit = ControlsExit,
             ) {
                 ControlsContent(controller, Modifier, visibility, colors, contentPadding)
             }
@@ -74,6 +74,10 @@ private fun ControlsContent(
         PlayerScrubber(controller, Modifier.fillMaxWidth(), visibility = visibility, colors = colors)
     }
 }
+
+/** How auto-hidden controls appear and disappear; shared by every control that follows a [ControlsVisibility]. */
+internal val ControlsEnter = fadeIn(tween(150))
+internal val ControlsExit = fadeOut(tween(250))
 
 /** Colors of the default controls. */
 @Immutable

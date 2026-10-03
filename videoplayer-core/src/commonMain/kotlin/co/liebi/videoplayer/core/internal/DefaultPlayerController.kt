@@ -17,6 +17,7 @@ import co.liebi.videoplayer.core.PlayerEvent
 import co.liebi.videoplayer.core.PlayerEventType
 import co.liebi.videoplayer.core.PlayerLifecycle
 import co.liebi.videoplayer.core.PlayerState
+import co.liebi.videoplayer.core.Presentation
 import co.liebi.videoplayer.core.SourceRefresher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -71,6 +72,7 @@ internal class DefaultPlayerController(
             isMuted = configuration.playback.initialMuted,
             playbackSpeed = configuration.playback.initialPlaybackSpeed,
             autoReplay = configuration.playback.autoReplay,
+            isFullscreenAvailable = coordinator.isFullscreenAvailable,
         ),
     )
     override val state: StateFlow<PlayerState> = _state.asStateFlow()
@@ -122,6 +124,12 @@ internal class DefaultPlayerController(
     /** PlaybackStarted was already emitted for the current play intent. */
     private var startedForIntent = false
 
+    /** Play intent was set (or held) when an interruption cleared it, so the end of the interruption may resume. */
+    private var resumeAfterInterruption = false
+
+    /** Play intent was set (or held) when the app moved to the background. */
+    private var resumeAfterBackground = false
+
     private var recoveryJob: Job? = null
     private var progressJob: Job? = null
     private var suspendJob: Job? = null
@@ -157,6 +165,11 @@ internal class DefaultPlayerController(
 
     override fun play() = command("play") {
         val wasStatus = _state.value.status
+        if (_state.value.isAudioInterrupted) {
+            // The user takes over from an interruption whose end the system may never report.
+            resumeAfterInterruption = false
+            _state.update { it.copy(isAudioInterrupted = false) }
+        }
         setPlayIntent()
         when {
             _state.value.lifecycle == PlayerLifecycle.Suspended -> resume()
@@ -300,6 +313,21 @@ internal class DefaultPlayerController(
 
     override fun suspend() = command("suspend") {
         suspendNow()
+    }
+
+    override fun enterFullscreen() = command("enterFullscreen") {
+        if (_state.value.presentation == Presentation.Fullscreen) return@command
+        if (!coordinator.showFullscreen(this)) {
+            log("enterFullscreen ignored: no FullscreenHost is placed for this player's coordinator")
+            return@command
+        }
+        setPresentation(Presentation.Fullscreen)
+    }
+
+    override fun exitFullscreen() = command("exitFullscreen") {
+        if (_state.value.presentation != Presentation.Fullscreen) return@command
+        coordinator.hideFullscreen(this)
+        setPresentation(Presentation.Inline)
     }
 
     override fun release() {
@@ -922,9 +950,68 @@ internal class DefaultPlayerController(
         )
     }
 
-    /** Another player became the active one (§14). */
+    /** Another player became the active one (§14). A hold in progress is replaced, so releasing it doesn't resume. */
     fun pauseForCoordinator() = operation {
-        if (!isReleased && _state.value.playWhenReady) clearPlayIntent(PauseReason.Coordinator)
+        if (!isReleased && _state.value.isPlayingOrHeld) clearPlayIntent(PauseReason.Coordinator)
+    }
+
+    fun setFullscreenAvailable(available: Boolean) = operation {
+        if (!isReleased) _state.update { it.copy(isFullscreenAvailable = available) }
+    }
+
+    /** Another player took the fullscreen host. */
+    fun leaveFullscreen() = operation {
+        if (!isReleased && _state.value.presentation == Presentation.Fullscreen) setPresentation(Presentation.Inline)
+    }
+
+    /** A call, alarm or transient focus loss (§13). Playback resumes when it ends, if the system allows. */
+    fun beginInterruption() = operation {
+        if (isReleased) return@operation
+        if (_state.value.isPlayingOrHeld) {
+            resumeAfterInterruption = true
+            clearPlayIntent(PauseReason.Interruption)
+        }
+        _state.update { it.copy(isAudioInterrupted = true) }
+    }
+
+    fun endInterruption(shouldResume: Boolean) = operation {
+        if (isReleased) return@operation
+        _state.update { it.copy(isAudioInterrupted = false) }
+        // A user pause or another automatic pause in the meantime wins.
+        if (shouldResume && resumeAfterInterruption && _state.value.pauseReason == PauseReason.Interruption) setPlayIntent()
+        resumeAfterInterruption = false
+    }
+
+    /** Permanent focus loss or headphones disconnected: pause without resuming. */
+    fun loseAudio() = operation {
+        if (isReleased) return@operation
+        resumeAfterInterruption = false
+        _state.update { it.copy(isAudioInterrupted = false) }
+        if (_state.value.isPlayingOrHeld) clearPlayIntent(PauseReason.Interruption)
+    }
+
+    fun enterBackground() = operation {
+        if (isReleased || !_state.value.isPlayingOrHeld) return@operation
+        resumeAfterBackground = true
+        clearPlayIntent(PauseReason.Background)
+    }
+
+    /** Resumes only with [LifecycleConfig.resumeAfterBackground], and only if nothing else paused it meanwhile. */
+    fun enterForeground() = operation {
+        if (isReleased) return@operation
+        val resume = resumeAfterBackground && configuration.lifecycle.resumeAfterBackground &&
+            _state.value.pauseReason == PauseReason.Background
+        resumeAfterBackground = false
+        if (resume) setPlayIntent()
+    }
+
+    private val PlayerState.isPlayingOrHeld: Boolean
+        get() = playWhenReady || pauseReason == PauseReason.Hold
+
+    private fun setPresentation(presentation: Presentation) {
+        val from = _state.value.presentation
+        _state.update { it.copy(presentation = presentation) }
+        emit(PlayerEventType.PresentationChanged(from, presentation))
     }
 
     /** Frees items kept for instant switch-back, to stay within the coordinator's cap. */

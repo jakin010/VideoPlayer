@@ -10,6 +10,7 @@ import co.liebi.videoplayer.core.PlayerEvent
 import co.liebi.videoplayer.core.PlayerEventType
 import co.liebi.videoplayer.core.PlayerLifecycle
 import co.liebi.videoplayer.core.PlayerState
+import co.liebi.videoplayer.core.Presentation
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -152,6 +153,17 @@ public class FakePlayerController(
         _state.update { it.copy(lifecycle = PlayerLifecycle.Suspended, status = PlaybackStatus.Idle, playWhenReady = false) }
     }
 
+    /** Goes fullscreen only when [PlayerState.isFullscreenAvailable], like a real player. */
+    override fun enterFullscreen() {
+        record(Call.EnterFullscreen)
+        _state.update { if (it.isFullscreenAvailable) it.copy(presentation = Presentation.Fullscreen) else it }
+    }
+
+    override fun exitFullscreen() {
+        record(Call.ExitFullscreen)
+        _state.update { it.copy(presentation = Presentation.Inline) }
+    }
+
     override fun release() {
         record(Call.Release)
         _state.update { it.copy(lifecycle = PlayerLifecycle.Released, status = PlaybackStatus.Idle, playWhenReady = false) }
@@ -176,6 +188,8 @@ public class FakePlayerController(
         public data class UpdateSource(val itemId: String, val source: MediaSource) : Call
         public data object Retry : Call
         public data object Suspend : Call
+        public data object EnterFullscreen : Call
+        public data object ExitFullscreen : Call
         public data object Release : Call
     }
 }

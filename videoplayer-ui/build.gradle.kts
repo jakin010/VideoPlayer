@@ -17,6 +17,10 @@ kotlin {
             implementation(libs.compose.animation)
             implementation(libs.compose.foundation)
             implementation(libs.compose.components.resources)
+            implementation(libs.androidx.navigationevent.compose)
+        }
+        androidMain.dependencies {
+            implementation(libs.androidx.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlinx.coroutines.test)

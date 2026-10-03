@@ -69,6 +69,9 @@ public sealed interface PlayerEventType {
 
     /** Any error. [isFinal] when the player enters [PlaybackStatus.Error]. */
     public data class PlaybackError(val error: PlayerError, val isFinal: Boolean) : PlayerEventType
+
+    /** The player moved between its inline surfaces and the fullscreen host. */
+    public data class PresentationChanged(val from: Presentation, val to: Presentation) : PlayerEventType
 }
 
 public enum class CredentialsRefreshTrigger {

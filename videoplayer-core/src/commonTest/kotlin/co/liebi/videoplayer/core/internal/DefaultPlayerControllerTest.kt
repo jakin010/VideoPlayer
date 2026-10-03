@@ -725,7 +725,7 @@ class DefaultPlayerControllerTest {
             configuration = configuration,
             sourceRefresher = refresher,
             engineFactory = { FakePlaybackEngine().also { engines += it } },
-            coordinator = PlayerCoordinator(CoordinatorConfig(), audioSession = { }, log = { warnings += it }),
+            coordinator = PlayerCoordinator(CoordinatorConfig(), system = { }, log = { warnings += it }),
             dispatcher = StandardTestDispatcher(scope.testScheduler),
             clock = FixedClock,
             timeSource = scope.testScheduler.timeSource,

@@ -31,12 +31,17 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import co.liebi.videoplayer.core.PlaybackStatus
 import co.liebi.videoplayer.core.PlayerController
+import co.liebi.videoplayer.core.Presentation
 import co.liebi.videoplayer.ui.generated.resources.Res
+import co.liebi.videoplayer.ui.generated.resources.ic_fullscreen
+import co.liebi.videoplayer.ui.generated.resources.ic_fullscreen_exit
 import co.liebi.videoplayer.ui.generated.resources.ic_pause
 import co.liebi.videoplayer.ui.generated.resources.ic_play
 import co.liebi.videoplayer.ui.generated.resources.ic_replay
 import co.liebi.videoplayer.ui.generated.resources.ic_sound_off
 import co.liebi.videoplayer.ui.generated.resources.ic_sound_on
+import co.liebi.videoplayer.ui.generated.resources.videoplayer_enter_fullscreen
+import co.liebi.videoplayer.ui.generated.resources.videoplayer_exit_fullscreen
 import co.liebi.videoplayer.ui.generated.resources.videoplayer_mute
 import co.liebi.videoplayer.ui.generated.resources.videoplayer_pause
 import co.liebi.videoplayer.ui.generated.resources.videoplayer_play
@@ -113,6 +118,35 @@ public fun MuteButton(
         } else {
             ControlIcon(Res.drawable.ic_sound_on, 13.dp, 10.5.dp, colors)
         }
+    }
+}
+
+/**
+ * Enters fullscreen, or exits it while fullscreen (§12). Hidden when no `FullscreenHost` is placed for the
+ * player's coordinator, because entering would do nothing.
+ */
+@Composable
+public fun FullscreenButton(
+    controller: PlayerController,
+    modifier: Modifier = Modifier,
+    visibility: ControlsVisibility? = null,
+    colors: PlayerControlsColors = PlayerControlsDefaults.colors(),
+) {
+    val state by controller.state.collectAsState()
+    val isFullscreen = state.presentation == Presentation.Fullscreen
+    if (!isFullscreen && !state.isFullscreenAvailable) return
+    ControlButton(
+        onClick = {
+            visibility?.onInteraction()
+            if (controller.state.value.presentation == Presentation.Fullscreen) controller.exitFullscreen() else controller.enterFullscreen()
+        },
+        contentDescription = stringResource(
+            if (isFullscreen) Res.string.videoplayer_exit_fullscreen else Res.string.videoplayer_enter_fullscreen,
+        ),
+        colors = colors,
+        modifier = modifier,
+    ) {
+        ControlIcon(if (isFullscreen) Res.drawable.ic_fullscreen_exit else Res.drawable.ic_fullscreen, 11.dp, 11.dp, colors)
     }
 }
 

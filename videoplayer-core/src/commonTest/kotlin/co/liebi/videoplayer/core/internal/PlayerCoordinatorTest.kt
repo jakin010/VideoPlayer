@@ -1,6 +1,7 @@
 package co.liebi.videoplayer.core.internal
 
 import co.liebi.videoplayer.core.CoordinatorConfig
+import co.liebi.videoplayer.core.InternalVideoPlayerApi
 import co.liebi.videoplayer.core.LifecycleConfig
 import co.liebi.videoplayer.core.MediaItem
 import co.liebi.videoplayer.core.MediaSource
@@ -11,6 +12,7 @@ import co.liebi.videoplayer.core.PlayerCoordinator
 import co.liebi.videoplayer.core.PlayerEvent
 import co.liebi.videoplayer.core.PlayerEventType
 import co.liebi.videoplayer.core.PlayerLifecycle
+import co.liebi.videoplayer.core.Presentation
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -302,6 +304,258 @@ class PlayerCoordinatorTest {
 
     // endregion
 
+    // region Fullscreen
+
+    @Test
+    fun enterFullscreenWithoutAHostDoesNothing() = coordinatorTest {
+        val a = it.player()
+
+        a.controller.enterFullscreen()
+
+        assertEquals(Presentation.Inline, a.controller.state.value.presentation)
+        assertFalse(a.controller.state.value.isFullscreenAvailable)
+        assertEquals(null, it.coordinator.fullscreenPlayer.value)
+        assertEquals(1, it.warnings.size, it.warnings.toString())
+    }
+
+    @Test
+    fun aHostMakesFullscreenAvailableToAllPlayers() = coordinatorTest {
+        val before = it.player()
+        val unregister = it.registerHost()
+        val after = it.player()
+
+        assertTrue(before.controller.state.value.isFullscreenAvailable)
+        assertTrue(after.controller.state.value.isFullscreenAvailable)
+
+        unregister()
+        assertFalse(before.controller.state.value.isFullscreenAvailable)
+        assertFalse(after.controller.state.value.isFullscreenAvailable)
+    }
+
+    @Test
+    fun fullscreenChangesWhereTheVideoIsShownNotWhatPlays() = coordinatorTest {
+        it.registerHost()
+        val a = it.player()
+        a.load("x")
+        a.controller.setMuted(true)
+        val before = a.controller.state.value
+
+        a.controller.enterFullscreen()
+
+        val during = a.controller.state.value
+        assertEquals(Presentation.Fullscreen, during.presentation)
+        assertSame(a.controller, it.coordinator.fullscreenPlayer.value)
+        assertEquals(before.copy(presentation = Presentation.Fullscreen), during, "only the presentation changes")
+        assertEquals(1, a.engine.loads.size, "no re-prepare")
+        assertEquals(PlayerEventType.PresentationChanged(Presentation.Inline, Presentation.Fullscreen), it.eventsOf(a).last())
+
+        a.controller.exitFullscreen()
+
+        assertEquals(before, a.controller.state.value)
+        assertEquals(null, it.coordinator.fullscreenPlayer.value)
+        assertEquals(PlayerEventType.PresentationChanged(Presentation.Fullscreen, Presentation.Inline), it.eventsOf(a).last())
+    }
+
+    @Test
+    fun anotherPlayerTakingFullscreenReturnsThePreviousOneInline() = coordinatorTest {
+        it.registerHost()
+        val a = it.player()
+        val b = it.player()
+        a.controller.enterFullscreen()
+
+        b.controller.enterFullscreen()
+
+        assertEquals(Presentation.Inline, a.controller.state.value.presentation)
+        assertEquals(Presentation.Fullscreen, b.controller.state.value.presentation)
+        assertSame(b.controller, it.coordinator.fullscreenPlayer.value)
+    }
+
+    @Test
+    fun releasingTheFullscreenPlayerEmptiesTheHost() = coordinatorTest {
+        it.registerHost()
+        val a = it.player()
+        a.controller.enterFullscreen()
+
+        a.controller.release()
+
+        assertEquals(null, it.coordinator.fullscreenPlayer.value)
+    }
+
+    @Test
+    fun theFullscreenPlayerStaysWhileTheHostIsRecreated() = coordinatorTest {
+        val unregister = it.registerHost()
+        val a = it.player()
+        a.controller.enterFullscreen()
+
+        // As on Android rotation: the old host leaves before the new one arrives.
+        unregister()
+        it.registerHost()
+
+        assertSame(a.controller, it.coordinator.fullscreenPlayer.value)
+        assertEquals(Presentation.Fullscreen, a.controller.state.value.presentation)
+    }
+
+    // endregion
+
+    // region Interruptions
+
+    @Test
+    fun aTransientInterruptionPausesAudiblePlayersAndResumesThem() = coordinatorTest {
+        val audible = it.player()
+        val muted = it.player(Muted)
+        audible.load("x")
+        muted.load("y")
+
+        it.coordinator.onInterruptionBegan(includesMuted = false)
+
+        assertEquals(PauseReason.Interruption, audible.controller.state.value.pauseReason)
+        assertTrue(audible.controller.state.value.isAudioInterrupted)
+        assertFalse(audible.engine.playWhenReady)
+        assertTrue(muted.controller.state.value.isPlaying, "muted players hold no audio focus on Android")
+
+        it.coordinator.onInterruptionEnded(shouldResume = true)
+
+        assertTrue(audible.controller.state.value.isPlaying)
+        assertFalse(audible.controller.state.value.isAudioInterrupted)
+    }
+
+    @Test
+    fun anInterruptionOfTheWholeSessionPausesMutedPlayersToo() = coordinatorTest {
+        val muted = it.player(Muted)
+        muted.load("y")
+
+        it.coordinator.onInterruptionBegan(includesMuted = true)
+        assertEquals(PauseReason.Interruption, muted.controller.state.value.pauseReason)
+
+        it.coordinator.onInterruptionEnded(shouldResume = true)
+        assertTrue(muted.controller.state.value.isPlaying)
+    }
+
+    @Test
+    fun anInterruptionEndingWithoutPermissionToResumeStaysPaused() = coordinatorTest {
+        val a = it.player()
+        a.load("x")
+        it.coordinator.onInterruptionBegan(includesMuted = true)
+
+        it.coordinator.onInterruptionEnded(shouldResume = false)
+
+        assertFalse(a.controller.state.value.playWhenReady)
+        assertFalse(a.controller.state.value.isAudioInterrupted)
+        assertEquals(PauseReason.Interruption, a.controller.state.value.pauseReason)
+    }
+
+    @Test
+    fun aUserPauseDuringAnInterruptionWins() = coordinatorTest {
+        val a = it.player()
+        a.load("x")
+        it.coordinator.onInterruptionBegan(includesMuted = true)
+
+        a.controller.pause()
+        it.coordinator.onInterruptionEnded(shouldResume = true)
+
+        assertFalse(a.controller.state.value.playWhenReady)
+        assertEquals(PauseReason.User, a.controller.state.value.pauseReason)
+    }
+
+    @Test
+    fun aPausedPlayerIsNotStartedWhenAnInterruptionEnds() = coordinatorTest {
+        val a = it.player(Idle)
+        a.load("x")
+
+        it.coordinator.onInterruptionBegan(includesMuted = true)
+        it.coordinator.onInterruptionEnded(shouldResume = true)
+
+        assertFalse(a.controller.state.value.playWhenReady)
+        assertEquals(PauseReason.User, a.controller.state.value.pauseReason)
+    }
+
+    @Test
+    fun playDuringAnInterruptionTakesOver() = coordinatorTest {
+        val a = it.player()
+        a.load("x")
+        it.coordinator.onInterruptionBegan(includesMuted = true)
+
+        a.controller.play()
+
+        assertTrue(a.controller.state.value.isPlaying)
+        assertFalse(a.controller.state.value.isAudioInterrupted)
+    }
+
+    @Test
+    fun losingAudioPausesAudiblePlayersForGood() = coordinatorTest {
+        val audible = it.player()
+        val muted = it.player(Muted)
+        audible.load("x")
+        muted.load("y")
+
+        it.coordinator.onAudioLost()
+        it.coordinator.onInterruptionEnded(shouldResume = true)
+
+        assertEquals(PauseReason.Interruption, audible.controller.state.value.pauseReason)
+        assertFalse(audible.controller.state.value.playWhenReady)
+        assertTrue(muted.controller.state.value.isPlaying)
+        assertTrue(PlayerEventType.PlaybackPaused(PauseReason.Interruption) in it.eventsOf(audible))
+    }
+
+    // endregion
+
+    // region Background
+
+    @Test
+    fun backgroundPausesEveryPlayingPlayerAndForegroundDoesNotResume() = coordinatorTest {
+        val audible = it.player()
+        val muted = it.player(Muted)
+        val paused = it.player(Idle)
+        audible.load("x")
+        muted.load("y")
+        paused.load("z")
+
+        it.coordinator.onBackground()
+
+        assertEquals(PauseReason.Background, audible.controller.state.value.pauseReason)
+        assertEquals(PauseReason.Background, muted.controller.state.value.pauseReason)
+        assertEquals(PauseReason.User, paused.controller.state.value.pauseReason, "already paused")
+
+        it.coordinator.onForeground()
+
+        assertFalse(audible.controller.state.value.playWhenReady)
+        assertFalse(muted.controller.state.value.playWhenReady)
+    }
+
+    @Test
+    fun resumeAfterBackgroundResumesOnlyPlayersStillPausedForIt() = coordinatorTest {
+        val config = PlayerConfiguration(lifecycle = LifecycleConfig(resumeAfterBackground = true))
+        val a = it.player(config)
+        val b = it.player(config)
+        val neverPlayed = it.player(config.copy(playback = PlaybackConfig(playOnItemSelected = false)))
+        a.load("x")
+        b.load("y")
+        neverPlayed.load("z")
+
+        it.coordinator.onBackground()
+        b.controller.pause()
+        it.coordinator.onForeground()
+
+        assertTrue(a.controller.state.value.isPlaying)
+        assertEquals(PauseReason.User, b.controller.state.value.pauseReason, "a user pause in between wins")
+        assertFalse(neverPlayed.controller.state.value.playWhenReady)
+    }
+
+    @Test
+    fun backgroundDuringAHoldWinsOverTheRelease() = coordinatorTest {
+        val a = it.player()
+        a.load("x")
+        a.controller.beginHold()
+
+        it.coordinator.onBackground()
+        a.controller.endHold()
+
+        assertFalse(a.controller.state.value.playWhenReady)
+        assertEquals(PauseReason.Background, a.controller.state.value.pauseReason)
+    }
+
+    // endregion
+
     private fun coordinatorTest(
         config: CoordinatorConfig = CoordinatorConfig(),
         body: suspend TestScope.(Harness) -> Unit,
@@ -331,7 +585,7 @@ class PlayerCoordinatorTest {
 
         val coordinator = PlayerCoordinator(
             config = config,
-            audioSession = { audible += it },
+            system = { audible += it },
             log = { warnings += it },
             createOwned = { coordinator, key, configuration, refresher ->
                 controller(coordinator, configuration, mutableListOf(), ownerKey = key, refresher = refresher)
@@ -348,6 +602,9 @@ class PlayerCoordinatorTest {
             val engines = mutableListOf<FakePlaybackEngine>()
             return TestPlayer(controller(coordinator, configuration, engines), engines)
         }
+
+        @OptIn(InternalVideoPlayerApi::class)
+        fun registerHost(): () -> Unit = coordinator.registerFullscreenHost()
 
         fun eventsOf(player: TestPlayer): List<PlayerEventType> =
             events.filter { it.playerId == player.controller.id }.map { it.type }
@@ -381,6 +638,8 @@ class PlayerCoordinatorTest {
             playback = PlaybackConfig(playOnItemSelected = false),
             lifecycle = LifecycleConfig(keepPreparedItems = 0),
         )
+
+        val Muted = PlayerConfiguration(playback = PlaybackConfig(initialMuted = true))
 
         fun item(id: String) = MediaItem(id, MediaSource.Url("https://example.com/$id.m3u8"))
     }

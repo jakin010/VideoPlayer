@@ -87,6 +87,16 @@ public interface PlayerController {
     /** Releases the native player now but keeps items, positions and settings. `play()` resumes. */
     public fun suspend()
 
+    /**
+     * Shows this player in its coordinator's `FullscreenHost`, above all app content (§12). Item, position,
+     * play intent and settings are untouched. Does nothing and logs a warning when no host is placed
+     * ([PlayerState.isFullscreenAvailable]). Another player that is fullscreen returns inline.
+     */
+    public fun enterFullscreen()
+
+    /** Returns to the inline surface. Does nothing when not fullscreen. */
+    public fun exitFullscreen()
+
     /** Permanently releases the player. Idempotent; later commands are ignored. */
     public fun release()
 }

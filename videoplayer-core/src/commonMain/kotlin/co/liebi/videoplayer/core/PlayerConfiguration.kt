@@ -72,6 +72,10 @@ public data class RetryConfig(
 
 @Immutable
 public data class LifecycleConfig(
+    /**
+     * Moving to the background pauses every player with [PauseReason.Background]. With this on, a player
+     * resumes on return if that is still its pause reason; a user pause in between wins (§13).
+     */
     val resumeAfterBackground: Boolean = false,
     val keepScreenAwakeWhilePlaying: Boolean = true,
     /** How long a suspended controller keeps item positions. */

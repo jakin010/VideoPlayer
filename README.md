@@ -34,6 +34,17 @@ LazyColumn {
 }
 ```
 
+Fullscreen needs one `FullscreenHost` per coordinator at the root of the UI, above the app content and outside any system bar padding. Until a host is placed, `enterFullscreen()` does nothing and the fullscreen button stays hidden:
+
+```kotlin
+Box(Modifier.fillMaxSize()) {
+    AppContent()
+    FullscreenHost() // PlayerCoordinator.Default; pass a coordinator for players that use another one
+}
+```
+
+On iOS, Compose can't hide the status bar itself. The view hosting the Compose UI applies `FullscreenStatusBar.isHidden`; the sample's `ContentView.swift` shows the SwiftUI version.
+
 ## Implementation status
 
 | Spec section | Status |
@@ -45,13 +56,16 @@ LazyColumn {
 | §11 Default controls: `PlayerControls`, `PlayPauseButton`, `MuteButton`, `PlayerScrubber` | Done. UI-tested on iOS |
 | §11 Auto-hide (`ControlsVisibility`), gestures (`VideoGestures`: tap, double-tap seek, hold to pause), `SeekIndicator`, `LoadingIndicator`, `ErrorPanel`, `VideoPlayer` | Done. UI-tested on iOS |
 | §14 `PlayerCoordinator`: registry, merged events, single active player, native player cap, owned controllers (`rememberPlayerController`), shared iOS audio session; keep screen awake while playing | Done, unit-tested in common code |
-| §12 Fullscreen, §13 audio focus, interruptions and background | Not started |
+| §12 Fullscreen: `FullscreenHost`, `FullscreenButton`, `enterFullscreen()` / `exitFullscreen()`, Back, custom controls slot | Done. Unit- and UI-tested |
+| §13 Audio focus (Android), interruptions, headphones disconnecting, pausing in the background with `resumeAfterBackground` | Done, unit-tested in common code |
 
 Known platform behavior:
 - iOS needs HTTP byte-range support for progressive MP4 (an Apple requirement). Hosts that ignore `Range` fail on iOS with `ErrorCategory.Http` (`AVFoundationErrorDomain -11850`); Android plays them. The fix is on the server.
 - iOS custom headers use the undocumented `AVURLAssetHTTPHeaderFieldsKey` option (open decision §19.1). Cookies and signed URLs are the robust choices.
 - `MediaSource.Resource` takes the URI from the generated resource accessor, `Res.getUri("files/intro.mp4")`. The library can't resolve another module's resource paths itself.
-- On iOS the coordinator keeps the audio session ambient (mixing with other apps, silenced by the ring switch) until an unmuted player plays, then switches to playback. Set `CoordinatorConfig.manageAudioSession = false` if the app manages the session itself.
+- Muted players never interrupt other apps' audio. On iOS the coordinator keeps the audio session ambient (mixing with other apps, silenced by the ring switch) until an unmuted player plays, then switches to playback. On Android it requests audio focus only while an unmuted player plays, one request per coordinator. Set `CoordinatorConfig.manageAudioSession = false` if the app manages the session or focus itself.
+- Interruptions: a call or alarm pauses with `PauseReason.Interruption` and resumes when the system allows it. On iOS this stops every player, muted ones included, because the whole session is interrupted. On Android it stops only audible players; ducking is left to the system. Losing focus for good, or headphones disconnecting, pauses without resuming.
+- The app moving to the background pauses every player with `PauseReason.Background`. Background playback is planned for v1.1.
 - The native player cap counts each player's current item plus items kept prepared. When every other player is playing, the cap is exceeded and a warning is logged rather than stopping playback.
 - On the Android emulator, video uses the software decoder: the emulator's goldfish decoder corrupts frames when HLS switches resolution. Real devices are unaffected.
 - There is no disk cache or offline playback; that is the app's responsibility.

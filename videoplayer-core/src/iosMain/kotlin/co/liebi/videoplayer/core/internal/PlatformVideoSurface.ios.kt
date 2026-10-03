@@ -57,7 +57,8 @@ private class VideoLayerHostView : UIView(frame = CGRectMake(0.0, 0.0, 0.0, 0.0)
     init {
         clipsToBounds = true
         userInteractionEnabled = false
-        backgroundColor = UIColor.clearColor
+        // Letterbox bars of a fitted video show this view, not the Compose background behind the interop hole.
+        backgroundColor = UIColor.blackColor
     }
 
     fun host(layer: AVPlayerLayer?, gravity: AVLayerVideoGravity, keepPrevious: Boolean) {

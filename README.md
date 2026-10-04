@@ -58,6 +58,7 @@ On iOS, Compose can't hide the status bar itself. The view hosting the Compose U
 | §14 `PlayerCoordinator`: registry, merged events, single active player, native player cap, owned controllers (`rememberPlayerController`), shared iOS audio session; keep screen awake while playing | Done, unit-tested in common code |
 | §12 Fullscreen: `FullscreenHost`, `FullscreenButton`, `enterFullscreen()` / `exitFullscreen()`, Back, custom controls slot | Done. Unit- and UI-tested |
 | §13 Audio focus (Android), interruptions, headphones disconnecting, pausing in the background with `resumeAfterBackground` | Done, unit-tested in common code |
+| §17 Parity suite and leak checks on the real engines (sample's Checks tab) | Done. Passing on the Android emulator and iOS simulator |
 
 Known platform behavior:
 - iOS needs HTTP byte-range support for progressive MP4 (an Apple requirement). Hosts that ignore `Range` fail on iOS with `ErrorCategory.Http` (`AVFoundationErrorDomain -11850`); Android plays them. The fix is on the server.
@@ -77,7 +78,7 @@ Known platform behavior:
 | [`videoplayer-core`](videoplayer-core) | `co.liebi.videoplayer:videoplayer-core` | Public API (`PlayerController`, state, events, configuration), `VideoPlayerSurface`, and the platform playback engines (Media3 / AVFoundation). The common state machine is in `internal/DefaultPlayerController.kt` |
 | [`videoplayer-ui`](videoplayer-ui) | `co.liebi.videoplayer:videoplayer-ui` | Default controls, `VideoPlayer`, gestures, fullscreen host and localizable strings. Optional: apps with fully custom controls only need `videoplayer-core` |
 | [`videoplayer-test`](videoplayer-test) | `co.liebi.videoplayer:videoplayer-test` | Test doubles (`FakePlayerController`) for app tests and `@Preview` |
-| [`videoplayer-sample`](videoplayer-sample) | not published | Android and iOS test app. The Player tab has HLS, MP4 and a broken URL with live state and an event log. The Coordinator tab is a feed of five streams with single-active, cap and autoplay switches and the merged event log. All players start muted |
+| [`videoplayer-sample`](videoplayer-sample) | not published | Android and iOS test app. The Player tab has HLS, MP4 and a broken URL with live state and an event log. The Coordinator tab is a feed of five streams with single-active, cap and autoplay switches and the merged event log. The Checks tab runs the parity suite and the leak checks. All players start muted |
 | [`build-logic`](build-logic) | not published | Gradle convention plugins |
 
 ```
@@ -101,6 +102,25 @@ videoplayer-ui ──► videoplayer-core ◄── videoplayer-test
 | All tests | `./gradlew allTests` |
 | Core tests on JVM / iOS simulator | `./gradlew :videoplayer-core:testAndroidHostTest` / `./gradlew :videoplayer-core:iosSimulatorArm64Test` |
 | Publish to Maven Local | `./gradlew publishToMavenLocal` |
+
+## Checks on the real engines
+
+The sample's Checks tab runs the §17 suites against Media3 and AVFoundation, with real surfaces and network media. Each result is shown on screen and printed as a `LVP-CHECK|…` line.
+
+- **Parity suite**: ten scripted scenarios (play and pause, pause before ready, seek, switching items and back, end with and without auto replay, a 404, suspend and resume, hold, fullscreen). Each one must emit exactly the expected event sequence, which is shared by both platforms, so passing on both means the sequences are identical. Buffering events are left out because they depend on the network. `FirstFrameRendered` is compared within its load, because whether the first frame is decoded before or after the minimum buffer depends on the decoder.
+- **Leak checks**: 100 create, load, suspend and release cycles, and a 100-item feed scroll. Afterwards every released controller and every native player (ExoPlayer, AVPlayer) must be unreachable after garbage collection. Debug builds of the Android sample also hand released players to LeakCanary.
+
+Run them from the tab, or at launch with `parity`, `cycles`, `feed`, `leaks` (cycles and feed) or `all`. Always name the emulator explicitly:
+
+```bash
+adb -s emulator-5554 shell am start -S -n co.liebi.videoplayer.sample/.MainActivity --es checks all
+```
+
+```bash
+xcrun simctl launch --console-pty booted co.liebi.videoplayer.sample -checks all
+```
+
+On Android the lines appear in `adb -s emulator-5554 logcat -s System.out`. Instruments' Leaks template can't scan iOS simulator processes on this setup, so the iOS leak check relies on the weak references above.
 
 ## Project conventions
 

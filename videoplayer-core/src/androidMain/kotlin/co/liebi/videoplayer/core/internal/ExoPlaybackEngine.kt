@@ -25,7 +25,9 @@ import androidx.media3.exoplayer.source.TrackGroupArray
 import androidx.media3.exoplayer.trackselection.ExoTrackSelection
 import androidx.media3.exoplayer.upstream.Allocator
 import co.liebi.videoplayer.core.BufferingConfig
+import co.liebi.videoplayer.core.InternalVideoPlayerApi
 import co.liebi.videoplayer.core.MediaSource
+import co.liebi.videoplayer.core.VideoPlayerDiagnostics
 import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -37,6 +39,7 @@ import androidx.media3.exoplayer.source.MediaSource as ExoMediaSource
  * start gating itself (§5). One native item is loaded at a time; playlists live in common code (§7).
  */
 @OptIn(UnstableApi::class)
+@kotlin.OptIn(InternalVideoPlayerApi::class)
 internal class ExoPlaybackEngine(
     private val context: Context,
     buffering: BufferingConfig,
@@ -98,7 +101,10 @@ internal class ExoPlaybackEngine(
         .setLooper(Looper.getMainLooper())
         .setLoadControl(loadControl)
         .build()
-        .also { it.addListener(playerListener) }
+        .also {
+            it.addListener(playerListener)
+            VideoPlayerDiagnostics.onNativePlayerCreated?.invoke(it)
+        }
 
     override fun setListener(listener: EngineListener?) {
         this.listener = listener

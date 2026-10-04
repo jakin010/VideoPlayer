@@ -20,17 +20,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.liebi.videoplayer.core.PlayerCoordinator
+import co.liebi.videoplayer.sample.checks.ChecksHooks
+import co.liebi.videoplayer.sample.checks.ChecksScreen
+import co.liebi.videoplayer.sample.checks.ChecksViewModel
 import co.liebi.videoplayer.ui.FullscreenHost
 
-private val Tabs = listOf("Player", "Coordinator")
+private val Tabs = listOf("Player", "Coordinator", "Checks")
 
 @Composable
 fun App() {
     MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
         // Surface provides the matching content color for text in light and dark themes.
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            var tab by rememberSaveable { mutableIntStateOf(0) }
+            // Launching with checks to run opens the Checks tab.
+            var tab by rememberSaveable { mutableIntStateOf(if (ChecksHooks.autoRun != null) 2 else 0) }
             val coordinatorViewModel = viewModel { CoordinatorViewModel() }
+            val checksViewModel = viewModel { ChecksViewModel() }
             Box(Modifier.fillMaxSize()) {
                 Column(Modifier.fillMaxSize().safeContentPadding()) {
                     PrimaryTabRow(selectedTabIndex = tab) {
@@ -40,12 +45,14 @@ fun App() {
                     }
                     when (tab) {
                         0 -> PlayerScreen(viewModel { PlayerViewModel() }.controller)
-                        else -> CoordinatorScreen(coordinatorViewModel)
+                        1 -> CoordinatorScreen(coordinatorViewModel)
+                        else -> ChecksScreen(checksViewModel)
                     }
                 }
                 // One host per coordinator, above everything and outside the system bar padding.
                 FullscreenHost(PlayerCoordinator.Default)
                 FullscreenHost(coordinatorViewModel.coordinator)
+                FullscreenHost(checksViewModel.coordinator)
             }
         }
     }

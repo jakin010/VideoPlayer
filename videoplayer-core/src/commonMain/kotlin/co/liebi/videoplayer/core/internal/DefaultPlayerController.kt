@@ -278,9 +278,11 @@ internal class DefaultPlayerController(
         keepCurrentItemPrepared(previousId)
         resetLoadState()
         resetItemState()
-        _state.update { it.withoutItemData().copy(currentItemId = id) }
         val start = startPositionFor(item)
         lastPosition = start
+        // Before the state names the new item, so whatever reacts to it reads the new item's position.
+        publishProgress()
+        _state.update { it.withoutItemData().copy(currentItemId = id) }
         emit(PlayerEventType.ItemChanged(previousId))
 
         if (configuration.playback.playOnItemSelected) setPlayIntent() else clearPlayIntent(PauseReason.User)
@@ -566,7 +568,9 @@ internal class DefaultPlayerController(
 
     /**
      * Runs [block] now, or after the current operation if called re-entrantly.
-     * Derived effects (engine play intent, PlaybackStarted, the progress ticker) are reconciled at the end.
+     * Derived effects (engine play intent, PlaybackStarted, the progress ticker) are reconciled after each block.
+     * Observers on the main thread can react to a state change while it is being made and call back in; those
+     * calls run only after the change is reconciled, so they never skip the events of a state they observed.
      */
     private fun operation(block: () -> Unit) {
         if (inOperation) {
@@ -576,13 +580,13 @@ internal class DefaultPlayerController(
         inOperation = true
         try {
             block()
-            do {
-                while (deferred.isNotEmpty()) {
-                    val next = deferred.removeFirst()
-                    if (!isReleased) next()
-                }
+            if (!isReleased) reconcile()
+            while (deferred.isNotEmpty()) {
+                val next = deferred.removeFirst()
+                if (isReleased) continue
+                next()
                 if (!isReleased) reconcile()
-            } while (deferred.isNotEmpty())
+            }
         } finally {
             inOperation = false
         }
@@ -689,6 +693,7 @@ internal class DefaultPlayerController(
         resetLoadState()
         resetItemState()
         lastPosition = Duration.ZERO
+        publishProgress()
         _state.update { it.withoutItemData().copy(currentItemId = null, status = PlaybackStatus.Idle) }
         emit(PlayerEventType.ItemChanged(previousId))
     }

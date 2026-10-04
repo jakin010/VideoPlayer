@@ -23,6 +23,7 @@ import co.liebi.videoplayer.core.PlayerEventType.SeekStarted
 import co.liebi.videoplayer.core.PlayerLifecycle
 import co.liebi.videoplayer.core.SourceRefresher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -690,6 +691,47 @@ class DefaultPlayerControllerTest {
         it.controller.setPlaybackSpeed(3f)
         assertEquals(2f, it.state.playbackSpeed)
         assertEquals(2f, it.engine.speed)
+    }
+
+    // endregion
+
+    // region Re-entrant observers
+
+    // Observers on the main thread resume while a state change is being made, like app coroutines on
+    // Dispatchers.Main.immediate. The parity suite found both of these on Android and iOS.
+
+    @Test
+    fun aCommandIssuedOnObservingPlaybackRunsAfterPlaybackStartedIsEmitted() = playerTest {
+        it.selectA()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            it.controller.state.first { state -> state.isPlaying }
+            it.controller.pause()
+        }
+
+        it.engine.becomeReady()
+
+        assertEquals(
+            listOf<PlayerEventType>(PlaybackStarted(isFirstStart = true), PlaybackPaused(PauseReason.User)),
+            it.eventTypes.filter { type -> type is PlaybackStarted || type is PlaybackPaused },
+        )
+        assertFalse(it.engine.playWhenReady)
+    }
+
+    @Test
+    fun progressShowsTheNewItemsPositionWhenTheStateNamesIt() = playerTest {
+        it.selectA()
+        it.engine.currentPosition = 20.seconds
+        it.engine.becomeReady()
+        assertEquals(20.seconds, it.controller.progress.value.position)
+        var positionSeen: Duration? = null
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            it.controller.state.first { state -> state.currentItemId == "b" }
+            positionSeen = it.controller.progress.value.position
+        }
+
+        it.controller.selectItem("b")
+
+        assertEquals(Duration.ZERO, positionSeen)
     }
 
     // endregion

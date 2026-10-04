@@ -1,8 +1,8 @@
 package co.liebi.videoplayer.core
 
-/** Connects `videoplayer-core` to `videoplayer-ui`. Not meant for apps. */
+/** Connects `videoplayer-core` to `videoplayer-ui` and to test tooling. Not meant for apps. */
 @RequiresOptIn(
-    message = "Used by the videoplayer-ui module. Apps use the composables it provides, such as FullscreenHost.",
+    message = "Used by the videoplayer-ui module and test tooling. Apps use the composables videoplayer-ui provides, such as FullscreenHost.",
     level = RequiresOptIn.Level.ERROR,
 )
 @Retention(AnnotationRetention.BINARY)

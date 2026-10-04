@@ -3,7 +3,9 @@ package co.liebi.videoplayer.core.internal
 import androidx.compose.ui.unit.IntSize
 import co.liebi.videoplayer.core.BufferingConfig
 import co.liebi.videoplayer.core.ErrorCategory
+import co.liebi.videoplayer.core.InternalVideoPlayerApi
 import co.liebi.videoplayer.core.MediaSource
+import co.liebi.videoplayer.core.VideoPlayerDiagnostics
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.readValue
@@ -65,7 +67,7 @@ import kotlin.time.DurationUnit
  * AVFoundation engine. AVPlayer has no equivalent of Media3's start thresholds, so this engine turns off
  * `automaticallyWaitsToMinimizeStalling` and only sets a rate once [BufferGate] is satisfied (§5).
  */
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, InternalVideoPlayerApi::class)
 internal class AVPlaybackEngine(private val buffering: BufferingConfig) : PlaybackEngine {
 
     private val player = AVPlayer().apply {
@@ -73,6 +75,7 @@ internal class AVPlaybackEngine(private val buffering: BufferingConfig) : Playba
         // AirPlay stays off in v1 so state remains predictable (§19).
         allowsExternalPlayback = false
         actionAtItemEnd = AVPlayerActionAtItemEndPause
+        VideoPlayerDiagnostics.onNativePlayerCreated?.invoke(this)
     }
 
     /** Owned by the engine and moved into whichever surface is active, so a handoff never re-prepares. */

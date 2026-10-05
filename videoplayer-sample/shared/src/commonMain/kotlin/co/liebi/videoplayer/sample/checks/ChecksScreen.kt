@@ -82,11 +82,13 @@ class ChecksViewModel : ViewModel() {
     fun autoRun(which: String) {
         if (autoRunStarted) return
         autoRunStarted = true
-        when (which) {
-            "parity" -> runParity()
-            "cycles" -> runCycles()
-            "feed" -> runFeed()
-            "leaks" -> start {
+        when {
+            // `parity:<name>,<name>` runs only those scenarios.
+            which.startsWith("parity:") -> start { parity(which.removePrefix("parity:").split(',').toSet()) }
+            which == "parity" -> runParity()
+            which == "cycles" -> runCycles()
+            which == "feed" -> runFeed()
+            which == "leaks" -> start {
                 cycles()
                 feed()
             }
@@ -110,10 +112,11 @@ class ChecksViewModel : ViewModel() {
         }
     }
 
-    private suspend fun parity() {
+    private suspend fun parity(only: Set<String>? = null) {
         parityResults.clear()
-        ParityScenarios.forEachIndexed { index, scenario ->
-            status = "Parity ${index + 1}/${ParityScenarios.size}: ${scenario.name}"
+        val scenarios = ParityScenarios.filter { only == null || it.name in only }
+        scenarios.forEachIndexed { index, scenario ->
+            status = "Parity ${index + 1}/${scenarios.size}: ${scenario.name}"
             val result = runScenario(scenario, coordinator) { current = it }
             parityResults += result
             report(result.line())

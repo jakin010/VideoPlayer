@@ -1,0 +1,25 @@
+<resources>
+    <string name="videoplayer_play">播放</string>
+    <string name="videoplayer_pause">暂停</string>
+    <string name="videoplayer_replay">重新播放</string>
+    <string name="videoplayer_mute">静音</string>
+    <string name="videoplayer_unmute">取消静音</string>
+    <string name="videoplayer_enter_fullscreen">全屏</string>
+    <string name="videoplayer_exit_fullscreen">退出全屏</string>
+    <string name="videoplayer_retry">重试</string>
+    <string name="videoplayer_error_generic">无法播放视频</string>
+    <string name="videoplayer_position">视频位置</string>
+    <string name="videoplayer_loading">正在加载</string>
+    <string name="videoplayer_seek_forward">+%1$d 秒</string>
+    <string name="videoplayer_seek_back">−%1$d 秒</string>
+    <string name="videoplayer_position_value">%1$s，共 %2$s</string>
+    <plurals name="videoplayer_hours">
+        <item quantity="other">%1$d 小时</item>
+    </plurals>
+    <plurals name="videoplayer_minutes">
+        <item quantity="other">%1$d 分钟</item>
+    </plurals>
+    <plurals name="videoplayer_seconds">
+        <item quantity="other">%1$d 秒</item>
+    </plurals>
+</resources>

@@ -1,0 +1,25 @@
+<resources>
+    <string name="videoplayer_play">Putar</string>
+    <string name="videoplayer_pause">Jeda</string>
+    <string name="videoplayer_replay">Putar ulang</string>
+    <string name="videoplayer_mute">Bisukan</string>
+    <string name="videoplayer_unmute">Bunyikan</string>
+    <string name="videoplayer_enter_fullscreen">Layar penuh</string>
+    <string name="videoplayer_exit_fullscreen">Keluar dari layar penuh</string>
+    <string name="videoplayer_retry">Coba lagi</string>
+    <string name="videoplayer_error_generic">Tidak dapat memutar video</string>
+    <string name="videoplayer_position">Posisi video</string>
+    <string name="videoplayer_loading">Memuat</string>
+    <string name="videoplayer_seek_forward">+%1$d dtk</string>
+    <string name="videoplayer_seek_back">−%1$d dtk</string>
+    <string name="videoplayer_position_value">%1$s dari %2$s</string>
+    <plurals name="videoplayer_hours">
+        <item quantity="other">%1$d jam</item>
+    </plurals>
+    <plurals name="videoplayer_minutes">
+        <item quantity="other">%1$d menit</item>
+    </plurals>
+    <plurals name="videoplayer_seconds">
+        <item quantity="other">%1$d detik</item>
+    </plurals>
+</resources>

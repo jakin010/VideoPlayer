@@ -20,41 +20,67 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import java.lang.ref.WeakReference
 
-internal actual fun createSystemIntegration(): SystemIntegration = AndroidSystemIntegration(ApplicationContext.get())
+internal actual fun createSystemIntegration(): SystemIntegration = CoordinatorAudio(ApplicationContext.get())
 
 /**
- * One audio focus request per coordinator, held while an unmuted player plays. Muted players never request
- * focus, so they never interrupt other apps. Players don't use Media3's focus handling: several players of
- * one coordinator would otherwise take focus from each other.
+ * One coordinator's vote. Audio focus is app-wide in practice: two requests from one app take focus from each
+ * other, so all coordinators share [SharedAudioFocus], like the iOS audio session.
  */
-private class AndroidSystemIntegration(private val context: Context) : SystemIntegration {
-    private val audioManager = context.getSystemService(AudioManager::class.java)
+private class CoordinatorAudio(private val context: Context) : SystemIntegration {
+    var isAudible = false
+        private set
+
+    override fun start(events: SystemEvents) {
+        SystemListeners.add(events)
+        SharedAudioFocus.add(this, context)
+    }
+
+    override fun onAudibleChanged(audible: Boolean) {
+        isAudible = audible
+        SharedAudioFocus.apply()
+    }
+}
+
+/**
+ * One audio focus request for the whole app, held while any coordinator has an unmuted player playing. Muted
+ * players never request focus, so they never interrupt other apps. Players don't use Media3's focus handling:
+ * several players would otherwise take focus from each other.
+ */
+private object SharedAudioFocus {
+    // Weak, so a coordinator the app dropped no longer counts.
+    private val votes = mutableListOf<WeakReference<CoordinatorAudio>>()
+    private lateinit var context: Context
+    private val audioManager by lazy { context.getSystemService(AudioManager::class.java) }
     private val handler = Handler(Looper.getMainLooper())
-    private var events: SystemEvents? = null
-    private var audible = false
     private var hasFocus = false
 
     /** A transient loss is in progress. Focus is kept so the system can return it. */
     private var transientLoss = false
     private var noisyRegistered = false
 
+    private val isAudible: Boolean
+        get() {
+            votes.removeAll { it.get() == null }
+            return votes.any { it.get()?.isAudible == true }
+        }
+
     private val focusListener = AudioManager.OnAudioFocusChangeListener { change ->
         when (change) {
             AudioManager.AUDIOFOCUS_GAIN -> if (transientLoss) {
                 transientLoss = false
-                events?.onInterruptionEnded(shouldResume = true)
-                if (!audible) abandonFocus()
+                SystemListeners.dispatch { it.onInterruptionEnded(shouldResume = true) }
+                if (!isAudible) abandonFocus()
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                 transientLoss = true
-                events?.onInterruptionBegan(includesMuted = false)
+                SystemListeners.dispatch { it.onInterruptionBegan(includesMuted = false) }
             }
             // Since Android 8 the system lowers the volume itself and playback continues.
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> Unit
             AudioManager.AUDIOFOCUS_LOSS -> {
                 transientLoss = false
                 abandonFocus()
-                events?.onAudioLost()
+                SystemListeners.dispatch { it.onAudioLost() }
             }
         }
     }
@@ -65,18 +91,18 @@ private class AndroidSystemIntegration(private val context: Context) : SystemInt
 
     private val noisyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) events?.onAudioLost()
+            if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) SystemListeners.dispatch { it.onAudioLost() }
         }
     }
 
-    override fun start(events: SystemEvents) {
-        this.events = events
-        AppLifecycle.add(events)
+    fun add(vote: CoordinatorAudio, context: Context) {
+        this.context = context.applicationContext
+        votes += WeakReference(vote)
     }
 
-    override fun onAudibleChanged(audible: Boolean) {
-        this.audible = audible
-        if (audible) {
+    /** Requests or abandons focus for the combined vote of all coordinators. */
+    fun apply() {
+        if (isAudible) {
             registerNoisyReceiver()
             // Asking again during a transient loss tells whether the interruption is still going on.
             if (!hasFocus || transientLoss) requestFocus()
@@ -92,10 +118,10 @@ private class AndroidSystemIntegration(private val context: Context) : SystemInt
         hasFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
         if (hasFocus && transientLoss) {
             transientLoss = false
-            handler.post { events?.onInterruptionEnded(shouldResume = true) }
+            handler.post { SystemListeners.dispatch { it.onInterruptionEnded(shouldResume = true) } }
         } else if (!hasFocus) {
             // Denied, for example during a call. Posted because this runs inside a player update.
-            handler.post { if (audible && !hasFocus) events?.onAudioLost() }
+            handler.post { if (isAudible && !hasFocus) SystemListeners.dispatch { it.onAudioLost() } }
         }
     }
 
@@ -131,16 +157,16 @@ private class AndroidSystemIntegration(private val context: Context) : SystemInt
         .build()
 }
 
-/** Process-wide foreground state. ProcessLifecycleOwner ignores configuration changes such as rotation. */
-private object AppLifecycle : DefaultLifecycleObserver {
-    // Weak, so a coordinator the app dropped is not kept alive.
+/** Every coordinator's [SystemEvents], held weakly so a coordinator the app dropped is not kept alive. */
+private object SystemListeners : DefaultLifecycleObserver {
     private val listeners = mutableListOf<WeakReference<SystemEvents>>()
-    private var observing = false
+    private var observingLifecycle = false
 
     fun add(events: SystemEvents) {
         listeners += WeakReference(events)
-        if (observing) return
-        observing = true
+        if (observingLifecycle) return
+        observingLifecycle = true
+        // Process-wide foreground state. ProcessLifecycleOwner ignores configuration changes such as rotation.
         val observe = { ProcessLifecycleOwner.get().lifecycle.addObserver(this) }
         if (Looper.myLooper() == Looper.getMainLooper()) observe() else Handler(Looper.getMainLooper()).post(observe)
     }
@@ -149,7 +175,7 @@ private object AppLifecycle : DefaultLifecycleObserver {
 
     override fun onStop(owner: LifecycleOwner) = dispatch { it.onBackground() }
 
-    private inline fun dispatch(block: (SystemEvents) -> Unit) {
+    inline fun dispatch(block: (SystemEvents) -> Unit) {
         listeners.removeAll { it.get() == null }
         listeners.mapNotNull { it.get() }.forEach(block)
     }

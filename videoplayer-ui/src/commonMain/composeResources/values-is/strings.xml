@@ -1,0 +1,28 @@
+<resources>
+    <string name="videoplayer_play">Spila</string>
+    <string name="videoplayer_pause">Gera hlé</string>
+    <string name="videoplayer_replay">Spila aftur</string>
+    <string name="videoplayer_mute">Slökkva á hljóði</string>
+    <string name="videoplayer_unmute">Kveikja á hljóði</string>
+    <string name="videoplayer_enter_fullscreen">Allur skjárinn</string>
+    <string name="videoplayer_exit_fullscreen">Loka öllum skjánum</string>
+    <string name="videoplayer_retry">Reyna aftur</string>
+    <string name="videoplayer_error_generic">Ekki tókst að spila myndskeiðið</string>
+    <string name="videoplayer_position">Staðsetning myndskeiðs</string>
+    <string name="videoplayer_loading">Hleður</string>
+    <string name="videoplayer_seek_forward">+%1$d sek.</string>
+    <string name="videoplayer_seek_back">−%1$d sek.</string>
+    <string name="videoplayer_position_value">%1$s af %2$s</string>
+    <plurals name="videoplayer_hours">
+        <item quantity="one">%1$d klukkustund</item>
+        <item quantity="other">%1$d klukkustundir</item>
+    </plurals>
+    <plurals name="videoplayer_minutes">
+        <item quantity="one">%1$d mínúta</item>
+        <item quantity="other">%1$d mínútur</item>
+    </plurals>
+    <plurals name="videoplayer_seconds">
+        <item quantity="one">%1$d sekúnda</item>
+        <item quantity="other">%1$d sekúndur</item>
+    </plurals>
+</resources>

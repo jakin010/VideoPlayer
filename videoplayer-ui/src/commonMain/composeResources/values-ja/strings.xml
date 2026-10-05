@@ -1,0 +1,25 @@
+<resources>
+    <string name="videoplayer_play">再生</string>
+    <string name="videoplayer_pause">一時停止</string>
+    <string name="videoplayer_replay">もう一度再生</string>
+    <string name="videoplayer_mute">ミュート</string>
+    <string name="videoplayer_unmute">ミュート解除</string>
+    <string name="videoplayer_enter_fullscreen">全画面表示</string>
+    <string name="videoplayer_exit_fullscreen">全画面表示を終了</string>
+    <string name="videoplayer_retry">再試行</string>
+    <string name="videoplayer_error_generic">動画を再生できません</string>
+    <string name="videoplayer_position">再生位置</string>
+    <string name="videoplayer_loading">読み込み中</string>
+    <string name="videoplayer_seek_forward">+%1$d秒</string>
+    <string name="videoplayer_seek_back">−%1$d秒</string>
+    <string name="videoplayer_position_value">%2$s中 %1$s</string>
+    <plurals name="videoplayer_hours">
+        <item quantity="other">%1$d時間</item>
+    </plurals>
+    <plurals name="videoplayer_minutes">
+        <item quantity="other">%1$d分</item>
+    </plurals>
+    <plurals name="videoplayer_seconds">
+        <item quantity="other">%1$d秒</item>
+    </plurals>
+</resources>

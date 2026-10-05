@@ -1,0 +1,28 @@
+<resources>
+    <string name="videoplayer_play">Spela upp</string>
+    <string name="videoplayer_pause">Pausa</string>
+    <string name="videoplayer_replay">Spela upp igen</string>
+    <string name="videoplayer_mute">Stäng av ljudet</string>
+    <string name="videoplayer_unmute">Slå på ljudet</string>
+    <string name="videoplayer_enter_fullscreen">Helskärm</string>
+    <string name="videoplayer_exit_fullscreen">Avsluta helskärm</string>
+    <string name="videoplayer_retry">Försök igen</string>
+    <string name="videoplayer_error_generic">Det går inte att spela upp videon</string>
+    <string name="videoplayer_position">Videoposition</string>
+    <string name="videoplayer_loading">Läser in</string>
+    <string name="videoplayer_seek_forward">+%1$d s</string>
+    <string name="videoplayer_seek_back">−%1$d s</string>
+    <string name="videoplayer_position_value">%1$s av %2$s</string>
+    <plurals name="videoplayer_hours">
+        <item quantity="one">%1$d timme</item>
+        <item quantity="other">%1$d timmar</item>
+    </plurals>
+    <plurals name="videoplayer_minutes">
+        <item quantity="one">%1$d minut</item>
+        <item quantity="other">%1$d minuter</item>
+    </plurals>
+    <plurals name="videoplayer_seconds">
+        <item quantity="one">%1$d sekund</item>
+        <item quantity="other">%1$d sekunder</item>
+    </plurals>
+</resources>

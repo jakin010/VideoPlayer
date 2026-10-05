@@ -12,7 +12,10 @@ internal expect fun collectGarbage()
 
 /** Hooks for the app shell: launch options and a leak watcher (LeakCanary on Android debug builds). */
 object ChecksHooks {
-    /** Set at launch to run checks automatically: `parity`, `cycles`, `feed`, `leaks` (cycles and feed) or `all`. */
+    /**
+     * Set at launch to run checks automatically: `parity`, `parity:<name>,<name>` for some scenarios, `cycles`,
+     * `feed`, `leaks` (cycles and feed) or `all`.
+     */
     var autoRun: String? = null
 
     /** Called with every player the checks release; it must become unreachable. */

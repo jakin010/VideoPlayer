@@ -1,0 +1,31 @@
+<resources>
+    <string name="videoplayer_play">Reproduzir</string>
+    <string name="videoplayer_pause">Pausar</string>
+    <string name="videoplayer_replay">Reproduzir novamente</string>
+    <string name="videoplayer_mute">Desativar som</string>
+    <string name="videoplayer_unmute">Ativar som</string>
+    <string name="videoplayer_enter_fullscreen">Tela cheia</string>
+    <string name="videoplayer_exit_fullscreen">Sair da tela cheia</string>
+    <string name="videoplayer_retry">Tentar novamente</string>
+    <string name="videoplayer_error_generic">Não é possível reproduzir o vídeo</string>
+    <string name="videoplayer_position">Posição do vídeo</string>
+    <string name="videoplayer_loading">Carregando</string>
+    <string name="videoplayer_seek_forward">+%1$d s</string>
+    <string name="videoplayer_seek_back">−%1$d s</string>
+    <string name="videoplayer_position_value">%1$s de %2$s</string>
+    <plurals name="videoplayer_hours">
+        <item quantity="one">%1$d hora</item>
+        <item quantity="many">%1$d horas</item>
+        <item quantity="other">%1$d horas</item>
+    </plurals>
+    <plurals name="videoplayer_minutes">
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="many">%1$d minutos</item>
+        <item quantity="other">%1$d minutos</item>
+    </plurals>
+    <plurals name="videoplayer_seconds">
+        <item quantity="one">%1$d segundo</item>
+        <item quantity="many">%1$d segundos</item>
+        <item quantity="other">%1$d segundos</item>
+    </plurals>
+</resources>

@@ -1,0 +1,28 @@
+<resources>
+    <string name="videoplayer_play">Abspielen</string>
+    <string name="videoplayer_pause">Pausieren</string>
+    <string name="videoplayer_replay">Erneut abspielen</string>
+    <string name="videoplayer_mute">Stummschalten</string>
+    <string name="videoplayer_unmute">Stummschaltung aufheben</string>
+    <string name="videoplayer_enter_fullscreen">Vollbild</string>
+    <string name="videoplayer_exit_fullscreen">Vollbild beenden</string>
+    <string name="videoplayer_retry">Erneut versuchen</string>
+    <string name="videoplayer_error_generic">Video kann nicht abgespielt werden</string>
+    <string name="videoplayer_position">Videoposition</string>
+    <string name="videoplayer_loading">Wird geladen</string>
+    <string name="videoplayer_seek_forward">+%1$d s</string>
+    <string name="videoplayer_seek_back">−%1$d s</string>
+    <string name="videoplayer_position_value">%1$s von %2$s</string>
+    <plurals name="videoplayer_hours">
+        <item quantity="one">%1$d Stunde</item>
+        <item quantity="other">%1$d Stunden</item>
+    </plurals>
+    <plurals name="videoplayer_minutes">
+        <item quantity="one">%1$d Minute</item>
+        <item quantity="other">%1$d Minuten</item>
+    </plurals>
+    <plurals name="videoplayer_seconds">
+        <item quantity="one">%1$d Sekunde</item>
+        <item quantity="other">%1$d Sekunden</item>
+    </plurals>
+</resources>

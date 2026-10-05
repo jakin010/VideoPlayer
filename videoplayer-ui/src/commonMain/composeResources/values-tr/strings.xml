@@ -1,0 +1,28 @@
+<resources>
+    <string name="videoplayer_play">Oynat</string>
+    <string name="videoplayer_pause">Duraklat</string>
+    <string name="videoplayer_replay">Tekrar oynat</string>
+    <string name="videoplayer_mute">Sesi kapat</string>
+    <string name="videoplayer_unmute">Sesi aç</string>
+    <string name="videoplayer_enter_fullscreen">Tam ekran</string>
+    <string name="videoplayer_exit_fullscreen">Tam ekrandan çık</string>
+    <string name="videoplayer_retry">Tekrar dene</string>
+    <string name="videoplayer_error_generic">Video oynatılamıyor</string>
+    <string name="videoplayer_position">Video konumu</string>
+    <string name="videoplayer_loading">Yükleniyor</string>
+    <string name="videoplayer_seek_forward">+%1$d sn</string>
+    <string name="videoplayer_seek_back">−%1$d sn</string>
+    <string name="videoplayer_position_value">%1$s / %2$s</string>
+    <plurals name="videoplayer_hours">
+        <item quantity="one">%1$d saat</item>
+        <item quantity="other">%1$d saat</item>
+    </plurals>
+    <plurals name="videoplayer_minutes">
+        <item quantity="one">%1$d dakika</item>
+        <item quantity="other">%1$d dakika</item>
+    </plurals>
+    <plurals name="videoplayer_seconds">
+        <item quantity="one">%1$d saniye</item>
+        <item quantity="other">%1$d saniye</item>
+    </plurals>
+</resources>

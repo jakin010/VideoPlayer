@@ -1,0 +1,28 @@
+<resources>
+    <string name="videoplayer_play">चलाएं</string>
+    <string name="videoplayer_pause">रोकें</string>
+    <string name="videoplayer_replay">फिर से चलाएं</string>
+    <string name="videoplayer_mute">म्यूट करें</string>
+    <string name="videoplayer_unmute">अनम्यूट करें</string>
+    <string name="videoplayer_enter_fullscreen">फ़ुल स्क्रीन</string>
+    <string name="videoplayer_exit_fullscreen">फ़ुल स्क्रीन से बाहर निकलें</string>
+    <string name="videoplayer_retry">फिर से कोशिश करें</string>
+    <string name="videoplayer_error_generic">वीडियो नहीं चलाया जा सका</string>
+    <string name="videoplayer_position">वीडियो की स्थिति</string>
+    <string name="videoplayer_loading">लोड हो रहा है</string>
+    <string name="videoplayer_seek_forward">+%1$d से.</string>
+    <string name="videoplayer_seek_back">−%1$d से.</string>
+    <string name="videoplayer_position_value">%2$s में से %1$s</string>
+    <plurals name="videoplayer_hours">
+        <item quantity="one">%1$d घंटा</item>
+        <item quantity="other">%1$d घंटे</item>
+    </plurals>
+    <plurals name="videoplayer_minutes">
+        <item quantity="one">%1$d मिनट</item>
+        <item quantity="other">%1$d मिनट</item>
+    </plurals>
+    <plurals name="videoplayer_seconds">
+        <item quantity="one">%1$d सेकंड</item>
+        <item quantity="other">%1$d सेकंड</item>
+    </plurals>
+</resources>

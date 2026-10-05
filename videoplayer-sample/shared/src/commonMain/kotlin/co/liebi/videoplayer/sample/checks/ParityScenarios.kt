@@ -5,13 +5,20 @@ import co.liebi.videoplayer.core.MediaSource
 import co.liebi.videoplayer.core.PlaybackConfig
 import co.liebi.videoplayer.core.PlaybackStatus
 import co.liebi.videoplayer.core.PlayerConfiguration
+import co.liebi.videoplayer.core.PlayerController
+import co.liebi.videoplayer.core.PlayerCoordinator
 import co.liebi.videoplayer.core.PlayerEventType
 import co.liebi.videoplayer.core.PlayerLifecycle
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 // Declared before the scenarios, which use them while being initialized.
 internal val Muted = PlayerConfiguration(playback = PlaybackConfig(initialMuted = true))
+
+/** Counts as playing with sound (unmuted, volume above 0) for audio focus and the audio session, but can't be heard. */
+internal val Inaudible = PlayerConfiguration(playback = PlaybackConfig(initialVolume = 0.001f))
 
 internal val Hls = MediaItem("hls", MediaSource.Url("https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"))
 internal val Mp4 = MediaItem(
@@ -157,6 +164,31 @@ internal val ParityScenarios = listOf(
         pause(1.seconds)
         controller.endHold()
         awaitState("playing after hold") { it.isPlaying }
+        controller.pause()
+    },
+    ParityScenario(
+        name = "two-coordinators-audible",
+        configuration = Inaudible,
+        expected = listOf(
+            "ItemChanged(null)", "FirstFrameRendered", "PlaybackStarted(first=true)", "PlaybackPaused(User)", "PlayerReleased",
+        ),
+    ) {
+        load(Hls)
+        awaitPosition(2.seconds)
+        // Audio focus and the audio session are app-wide: a player of another coordinator playing with sound
+        // must not pause this one.
+        val other = PlayerController(Inaudible, coordinator = PlayerCoordinator())
+        try {
+            other.setItems(listOf(Mp4))
+            other.selectItem(Mp4.id)
+            withTimeoutOrNull(30.seconds) { other.state.first { it.isPlaying } }
+                ?: throw ScenarioFailure("the other coordinator's player never started")
+            pause(2.seconds)
+            check(controller.state.value.isPlaying, "paused by the other coordinator: ${controller.state.value.pauseReason}")
+            check(other.state.value.isPlaying, "the other coordinator's player stopped: ${other.state.value.pauseReason}")
+        } finally {
+            other.release()
+        }
         controller.pause()
     },
     ParityScenario(

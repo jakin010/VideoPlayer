@@ -2,6 +2,7 @@ package co.liebi.videoplayer.sample
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -66,7 +67,8 @@ val FeedItems = listOf(
 @Composable
 fun Poster(title: String?) {
     Box(Modifier.fillMaxSize().background(Color.DarkGray), contentAlignment = Alignment.TopStart) {
-        Text(title.orEmpty(), color = Color.White, modifier = Modifier.padding(12.dp))
+        // Room for the fullscreen button, which stays in the top right in every layout direction.
+        Text(title.orEmpty(), color = Color.White, modifier = Modifier.absolutePadding(left = 12.dp, top = 12.dp, right = 52.dp))
     }
 }
 

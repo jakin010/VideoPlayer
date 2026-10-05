@@ -1,0 +1,28 @@
+<resources>
+    <string name="videoplayer_play">চালান</string>
+    <string name="videoplayer_pause">বিরতি দিন</string>
+    <string name="videoplayer_replay">আবার চালান</string>
+    <string name="videoplayer_mute">মিউট করুন</string>
+    <string name="videoplayer_unmute">আনমিউট করুন</string>
+    <string name="videoplayer_enter_fullscreen">পূর্ণ স্ক্রিন</string>
+    <string name="videoplayer_exit_fullscreen">পূর্ণ স্ক্রিন থেকে বেরিয়ে আসুন</string>
+    <string name="videoplayer_retry">আবার চেষ্টা করুন</string>
+    <string name="videoplayer_error_generic">ভিডিও চালানো যাচ্ছে না</string>
+    <string name="videoplayer_position">ভিডিওর অবস্থান</string>
+    <string name="videoplayer_loading">লোড হচ্ছে</string>
+    <string name="videoplayer_seek_forward">+%1$d সে.</string>
+    <string name="videoplayer_seek_back">−%1$d সে.</string>
+    <string name="videoplayer_position_value">%2$s এর মধ্যে %1$s</string>
+    <plurals name="videoplayer_hours">
+        <item quantity="one">%1$d ঘণ্টা</item>
+        <item quantity="other">%1$d ঘণ্টা</item>
+    </plurals>
+    <plurals name="videoplayer_minutes">
+        <item quantity="one">%1$d মিনিট</item>
+        <item quantity="other">%1$d মিনিট</item>
+    </plurals>
+    <plurals name="videoplayer_seconds">
+        <item quantity="one">%1$d সেকেন্ড</item>
+        <item quantity="other">%1$d সেকেন্ড</item>
+    </plurals>
+</resources>

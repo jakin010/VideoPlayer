@@ -1,0 +1,34 @@
+<resources>
+    <string name="videoplayer_play">Воспроизвести</string>
+    <string name="videoplayer_pause">Пауза</string>
+    <string name="videoplayer_replay">Воспроизвести снова</string>
+    <string name="videoplayer_mute">Выключить звук</string>
+    <string name="videoplayer_unmute">Включить звук</string>
+    <string name="videoplayer_enter_fullscreen">Во весь экран</string>
+    <string name="videoplayer_exit_fullscreen">Выйти из полноэкранного режима</string>
+    <string name="videoplayer_retry">Повторить</string>
+    <string name="videoplayer_error_generic">Не удалось воспроизвести видео</string>
+    <string name="videoplayer_position">Позиция видео</string>
+    <string name="videoplayer_loading">Загрузка</string>
+    <string name="videoplayer_seek_forward">+%1$d с</string>
+    <string name="videoplayer_seek_back">−%1$d с</string>
+    <string name="videoplayer_position_value">%1$s из %2$s</string>
+    <plurals name="videoplayer_hours">
+        <item quantity="one">%1$d час</item>
+        <item quantity="few">%1$d часа</item>
+        <item quantity="many">%1$d часов</item>
+        <item quantity="other">%1$d часа</item>
+    </plurals>
+    <plurals name="videoplayer_minutes">
+        <item quantity="one">%1$d минута</item>
+        <item quantity="few">%1$d минуты</item>
+        <item quantity="many">%1$d минут</item>
+        <item quantity="other">%1$d минуты</item>
+    </plurals>
+    <plurals name="videoplayer_seconds">
+        <item quantity="one">%1$d секунда</item>
+        <item quantity="few">%1$d секунды</item>
+        <item quantity="many">%1$d секунд</item>
+        <item quantity="other">%1$d секунды</item>
+    </plurals>
+</resources>

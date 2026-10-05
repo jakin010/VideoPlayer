@@ -1,0 +1,28 @@
+<resources>
+    <string name="videoplayer_play">Afspelen</string>
+    <string name="videoplayer_pause">Pauzeren</string>
+    <string name="videoplayer_replay">Opnieuw afspelen</string>
+    <string name="videoplayer_mute">Dempen</string>
+    <string name="videoplayer_unmute">Dempen opheffen</string>
+    <string name="videoplayer_enter_fullscreen">Volledig scherm</string>
+    <string name="videoplayer_exit_fullscreen">Volledig scherm sluiten</string>
+    <string name="videoplayer_retry">Opnieuw proberen</string>
+    <string name="videoplayer_error_generic">Kan video niet afspelen</string>
+    <string name="videoplayer_position">Videopositie</string>
+    <string name="videoplayer_loading">Laden</string>
+    <string name="videoplayer_seek_forward">+%1$d s</string>
+    <string name="videoplayer_seek_back">−%1$d s</string>
+    <string name="videoplayer_position_value">%1$s van %2$s</string>
+    <plurals name="videoplayer_hours">
+        <item quantity="one">%1$d uur</item>
+        <item quantity="other">%1$d uur</item>
+    </plurals>
+    <plurals name="videoplayer_minutes">
+        <item quantity="one">%1$d minuut</item>
+        <item quantity="other">%1$d minuten</item>
+    </plurals>
+    <plurals name="videoplayer_seconds">
+        <item quantity="one">%1$d seconde</item>
+        <item quantity="other">%1$d seconden</item>
+    </plurals>
+</resources>

@@ -5,6 +5,8 @@ Playback runs on Media3 ExoPlayer on Android and AVFoundation `AVPlayer` on iOS.
 
 > Status: early development (v1 spec). Private repository; the API isn't stable yet.
 
+The [documentation](docs/README.md) explains the API, how to build with it, and the parts of the code that need extra care.
+
 ## Usage
 
 ```kotlin
@@ -107,7 +109,7 @@ videoplayer-ui ──► videoplayer-core ◄── videoplayer-test
 
 The sample's Checks tab runs the §17 suites against Media3 and AVFoundation, with real surfaces and network media. Each result is shown on screen and printed as a `LVP-CHECK|…` line.
 
-- **Parity suite**: ten scripted scenarios (play and pause, pause before ready, seek, switching items and back, end with and without auto replay, a 404, suspend and resume, hold, fullscreen). Each one must emit exactly the expected event sequence, which is shared by both platforms, so passing on both means the sequences are identical. Buffering events are left out because they depend on the network. `FirstFrameRendered` is compared within its load, because whether the first frame is decoded before or after the minimum buffer depends on the decoder.
+- **Parity suite**: eleven scripted scenarios (play and pause, pause before ready, seek, switching items and back, end with and without auto replay, a 404, suspend and resume, hold, two coordinators playing with sound, fullscreen). Each one must emit exactly the expected event sequence, which is shared by both platforms, so passing on both means the sequences are identical. Buffering events are left out because they depend on the network. `FirstFrameRendered` is compared within its load, because whether the first frame is decoded before or after the minimum buffer depends on the decoder.
 - **Leak checks**: 100 create, load, suspend and release cycles, and a 100-item feed scroll. Afterwards every released controller and every native player (ExoPlayer, AVPlayer) must be unreachable after garbage collection. Debug builds of the Android sample also hand released players to LeakCanary.
 
 Run them from the tab, or at launch with `parity`, `cycles`, `feed`, `leaks` (cycles and feed) or `all`. Always name the emulator explicitly:

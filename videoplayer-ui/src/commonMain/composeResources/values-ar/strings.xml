@@ -1,0 +1,40 @@
+<resources>
+    <string name="videoplayer_play">تشغيل</string>
+    <string name="videoplayer_pause">إيقاف مؤقت</string>
+    <string name="videoplayer_replay">إعادة التشغيل</string>
+    <string name="videoplayer_mute">كتم الصوت</string>
+    <string name="videoplayer_unmute">إلغاء كتم الصوت</string>
+    <string name="videoplayer_enter_fullscreen">ملء الشاشة</string>
+    <string name="videoplayer_exit_fullscreen">الخروج من ملء الشاشة</string>
+    <string name="videoplayer_retry">إعادة المحاولة</string>
+    <string name="videoplayer_error_generic">تعذّر تشغيل الفيديو</string>
+    <string name="videoplayer_position">موضع الفيديو</string>
+    <string name="videoplayer_loading">جارٍ التحميل</string>
+    <string name="videoplayer_seek_forward">+%1$d ث</string>
+    <string name="videoplayer_seek_back">−%1$d ث</string>
+    <string name="videoplayer_position_value">%1$s من %2$s</string>
+    <plurals name="videoplayer_hours">
+        <item quantity="zero">%1$d ساعة</item>
+        <item quantity="one">ساعة واحدة</item>
+        <item quantity="two">ساعتان</item>
+        <item quantity="few">%1$d ساعات</item>
+        <item quantity="many">%1$d ساعة</item>
+        <item quantity="other">%1$d ساعة</item>
+    </plurals>
+    <plurals name="videoplayer_minutes">
+        <item quantity="zero">%1$d دقيقة</item>
+        <item quantity="one">دقيقة واحدة</item>
+        <item quantity="two">دقيقتان</item>
+        <item quantity="few">%1$d دقائق</item>
+        <item quantity="many">%1$d دقيقة</item>
+        <item quantity="other">%1$d دقيقة</item>
+    </plurals>
+    <plurals name="videoplayer_seconds">
+        <item quantity="zero">%1$d ثانية</item>
+        <item quantity="one">ثانية واحدة</item>
+        <item quantity="two">ثانيتان</item>
+        <item quantity="few">%1$d ثوانٍ</item>
+        <item quantity="many">%1$d ثانية</item>
+        <item quantity="other">%1$d ثانية</item>
+    </plurals>
+</resources>

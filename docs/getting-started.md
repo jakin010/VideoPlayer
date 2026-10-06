@@ -33,6 +33,7 @@ kotlin {
 
 ### iOS
 
+- Minimum iOS 17.
 - Plain `http://` media needs an App Transport Security exception in `Info.plist`. The sample's `Info.plist` shows a per-domain exception.
 - Progressive MP4 needs a server that supports HTTP range requests. Apple requires it; Android doesn't. See [Errors and retry](errors-and-retry.md#platform-differences).
 - To hide the status bar in fullscreen, the Swift side of your app has to apply `FullscreenStatusBar`. See [Fullscreen](fullscreen.md#ios-status-bar).

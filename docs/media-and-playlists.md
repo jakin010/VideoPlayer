@@ -37,7 +37,7 @@ MediaSource.Url(
 
 - Signed URLs need nothing else and are the most robust choice.
 - Cookies use public APIs on both platforms. A cookie without `domain` uses the host of the URL.
-- On iOS, custom headers rely on an undocumented `AVURLAsset` option (open spec decision §19.1). Prefer cookies or signed URLs there, and test headers on real devices.
+- On iOS, custom headers rely on an undocumented `AVURLAsset` option. It works on devices, but Apple doesn't document it, so cookies or signed URLs are the safer choice there.
 - Credentials never appear in logs, events or `toString()`; `MediaSource.Url.toString()` drops the query string and header values.
 
 ## The playlist

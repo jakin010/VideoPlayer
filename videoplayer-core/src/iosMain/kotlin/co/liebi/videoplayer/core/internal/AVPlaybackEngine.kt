@@ -364,7 +364,7 @@ private fun MediaSource.toNSURL(): NSURL? = when (this) {
 
 /**
  * Cookies use the public AVURLAssetHTTPCookiesKey. Custom headers have no public API; this uses the
- * undocumented header option, which is the open decision §19.1 and needs validating on devices.
+ * undocumented header option (§19.1), which works on devices but isn't guaranteed.
  */
 private fun MediaSource.assetOptions(url: NSURL): Map<Any?, Any?>? {
     if (this !is MediaSource.Url) return null

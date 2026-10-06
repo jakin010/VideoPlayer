@@ -2,8 +2,7 @@
 
 A Compose Multiplatform library for playing local and remote video (MP4 and HLS VOD) on **Android** and **iOS** behind one common API.
 Playback runs on Media3 ExoPlayer on Android and AVFoundation `AVPlayer` on iOS. Shared behavior lives in common code.
-
-> Status: early development (v1 spec). Private repository; the API isn't stable yet.
+It supports Android 7.0 (API 24) and iOS 17 and later.
 
 The [documentation](docs/README.md) explains the API, how to build with it, and the parts of the code that need extra care.
 
@@ -47,28 +46,12 @@ Box(Modifier.fillMaxSize()) {
 
 On iOS, Compose can't hide the status bar itself. The view hosting the Compose UI applies `FullscreenStatusBar.isHidden`; the sample's `ContentView.swift` shows the SwiftUI version.
 
-## Implementation status
+## Known platform behavior
 
-| Spec section | Status |
-|---|---|
-| §3–§9 Public API, state model, buffering, seeking, playlist and position memory, suspension and retention, errors and retry, credential refresh | Done, unit-tested in common code |
-| §10 `VideoPlayerSurface`: aspect ratio, content scale, poster, surface handoff | Done |
-| §15–§17 Events, configuration, `FakePlayerController` | Done |
-| Instant switch-back: recently played items stay prepared in memory (`LifecycleConfig.keepPreparedItems`, default 1) | Done |
-| §11 Default controls: `PlayerControls`, `PlayPauseButton`, `MuteButton`, `PlayerScrubber` | Done. UI-tested on iOS |
-| §11 Auto-hide (`ControlsVisibility`), gestures on `VideoPlayerSurface` (`VideoGestures`: tap, double-tap seek, hold to pause, swipe to enter and leave fullscreen, each switchable, plus the app's own gestures), `SeekIndicator`, `LoadingIndicator`, `ErrorPanel`, `VideoPlayer` | Done. UI-tested on iOS |
-| §14 `PlayerCoordinator`: registry, merged events, single active player, native player cap, owned controllers (`rememberPlayerController`), shared iOS audio session; keep screen awake while playing | Done, unit-tested in common code |
-| §12 Fullscreen, changed from the spec: the app shows `FullscreenVideoPlayer` while a player is fullscreen instead of a global `FullscreenHost`; `fullscreenEnabled`, `FullscreenControls`, `FullscreenButton`, `enterFullscreen()` / `exitFullscreen()`, Back, custom controls slot | Done. Unit- and UI-tested |
-| Turning the fullscreen view: rotate buttons and auto-rotate to the video's shape and the device's tilt (`FullscreenRotation`), working under rotation lock | Done. Unit- and UI-tested, checked by hand on the Android emulator and iOS simulator |
-| `VideoPlayerTheme`: colors and icons of the whole player UI, switchable at runtime (`ProvideVideoPlayerTheme`); swipe feedback (`SwipeIndicator`) | Done. Unit- and UI-tested, checked by hand on the Android emulator |
-| §13 Audio focus (Android), interruptions, headphones disconnecting, pausing in the background with `resumeAfterBackground` | Done, unit-tested in common code |
-| §17 Parity suite and leak checks on the real engines (sample's Checks tab) | Done. Passing on the Android emulator and iOS simulator |
-
-Known platform behavior:
 - iOS needs HTTP byte-range support for progressive MP4 (an Apple requirement). Hosts that ignore `Range` fail on iOS with `ErrorCategory.Http` (`AVFoundationErrorDomain -11850`); Android plays them. The fix is on the server.
-- iOS custom headers use the undocumented `AVURLAssetHTTPHeaderFieldsKey` option (open decision §19.1). Cookies and signed URLs are the robust choices.
+- iOS custom headers use the undocumented `AVURLAssetHTTPHeaderFieldsKey` option. It works on devices, but Apple doesn't document it, so cookies and signed URLs are the robust choices.
 - `MediaSource.Resource` takes the URI from the generated resource accessor, `Res.getUri("files/intro.mp4")`. The library can't resolve another module's resource paths itself.
-- Muted players never interrupt other apps' audio. On iOS the coordinator keeps the audio session ambient (mixing with other apps, silenced by the ring switch) until an unmuted player plays, then switches to playback. On Android it requests audio focus only while an unmuted player plays, one request per coordinator. Set `CoordinatorConfig.manageAudioSession = false` if the app manages the session or focus itself.
+- Muted players never interrupt other apps' audio. On iOS the coordinator keeps the audio session ambient (mixing with other apps, silenced by the ring switch) until an unmuted player plays, then switches to playback. On Android it requests audio focus only while an unmuted player plays, with one request for the whole app that every coordinator shares. Set `CoordinatorConfig.manageAudioSession = false` if the app manages the session or focus itself.
 - Interruptions: a call or alarm pauses with `PauseReason.Interruption` and resumes when the system allows it. On iOS this stops every player, muted ones included, because the whole session is interrupted. On Android it stops only audible players; ducking is left to the system. Losing focus for good, or headphones disconnecting, pauses without resuming.
 - The app moving to the background pauses every player with `PauseReason.Background`. Background playback is planned for v1.1.
 - The native player cap counts each player's current item plus items kept prepared. When every other player is playing, the cap is exceeded and a warning is logged rather than stopping playback.

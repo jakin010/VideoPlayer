@@ -78,7 +78,7 @@ Kotlin/Native only exposes `observeValueForKeyPath:ofObject:change:context:` as 
 
 ### Headers and cookies
 
-Cookies use the public `AVURLAssetHTTPCookiesKey`. Custom headers have no public API: the engine uses the undocumented `AVURLAssetHTTPHeaderFieldsKey` asset option (open decision §19.1). It works in practice but isn't guaranteed. A resource-loader fallback is the documented alternative if it ever breaks.
+Cookies use the public `AVURLAssetHTTPCookiesKey`. Custom headers have no public API: the engine uses the undocumented `AVURLAssetHTTPHeaderFieldsKey` asset option (spec §19.1). It works on devices but isn't guaranteed. A resource-loader fallback is the documented alternative if it ever breaks.
 
 ### Surface and layer handoff
 

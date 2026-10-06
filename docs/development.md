@@ -72,15 +72,15 @@ Keep players muted during manual tests unless the test is about mute itself. To 
 adb -s emulator-5554 shell cmd media_session volume --stream 3 --set 0
 ```
 
-## Open decisions
+## Decisions
 
-From §19 of the spec:
+How the open decisions in §19 of the spec were settled:
 
-| Decision | Status |
+| Decision | Outcome |
 |---|---|
-| iOS custom headers | Using the undocumented `AVURLAsset` option; still to validate on devices |
-| Distribution | Decided: private repository |
-| `maxActivePlayers` default | 4; still to measure on low-end Android devices |
-| Minimum OS versions | Android API 24; the iOS minimum is still open (the spec proposes iOS 15) |
+| iOS custom headers | The undocumented `AVURLAsset` option; it works on devices |
+| Distribution | Private repository, to be hosted on GitLab; CI and publishing aren't set up yet |
+| `maxActivePlayers` default | 4, checked on devices |
+| Minimum OS versions | Android API 24, iOS 17 |
 | Captions | No caption API; platform defaults apply |
 | AirPlay | Off in v1 (`allowsExternalPlayback = false`) |

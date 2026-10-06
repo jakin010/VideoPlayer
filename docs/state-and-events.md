@@ -53,7 +53,7 @@ Each time play intent is cleared, the player records why in `pauseReason`. Only 
 | `videoSize` | Native size of the video, once known |
 | `volume`, `isMuted`, `playbackSpeed`, `autoReplay` | Current settings |
 | `error`, `retryAttempt` | The most recent error; the retry in progress, or 0 |
-| `presentation`, `isFullscreenAvailable` | `Inline` or `Fullscreen`; whether a `FullscreenHost` is placed |
+| `presentation`, `isFullscreenAvailable` | `Inline` or `Fullscreen`; whether the configuration has `fullscreenEnabled` |
 | `isAudioInterrupted` | A call or another app's transient audio focus is interrupting playback |
 
 ## Progress

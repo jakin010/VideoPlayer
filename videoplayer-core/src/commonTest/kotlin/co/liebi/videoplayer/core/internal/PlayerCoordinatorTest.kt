@@ -1,7 +1,6 @@
 package co.liebi.videoplayer.core.internal
 
 import co.liebi.videoplayer.core.CoordinatorConfig
-import co.liebi.videoplayer.core.InternalVideoPlayerApi
 import co.liebi.videoplayer.core.LifecycleConfig
 import co.liebi.videoplayer.core.MediaItem
 import co.liebi.videoplayer.core.MediaSource
@@ -23,6 +22,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotSame
 import kotlin.test.assertSame
@@ -218,6 +218,41 @@ class PlayerCoordinatorTest {
     }
 
     @Test
+    fun ownedControllerStartsWithTheGivenItems() = coordinatorTest {
+        val items = listOf(item("a"), item("b"))
+
+        assertEquals("a", it.coordinator.controllerFor("feed-1", items = items).state.value.currentItemId, "the first by default")
+        assertEquals("b", it.coordinator.controllerFor("feed-2", items = items, selectedItemId = "b").state.value.currentItemId)
+        assertEquals(null, it.coordinator.controllerFor("feed-3", items = items, selectedItemId = null).state.value.currentItemId)
+    }
+
+    @Test
+    fun anExistingOwnedControllerKeepsItsItems() = coordinatorTest {
+        val first = it.coordinator.controllerFor("feed-1", items = listOf(item("a")))
+
+        val again = it.coordinator.controllerFor("feed-1", items = listOf(item("b")))
+
+        assertSame(first, again)
+        assertEquals("a", again.state.value.currentItemId)
+    }
+
+    @Test
+    fun aSelectedItemThatIsNotAmongTheItemsIsRejected() = coordinatorTest {
+        assertFailsWith<IllegalArgumentException> {
+            it.coordinator.controllerFor("feed-1", items = listOf(item("a")), selectedItemId = "x")
+        }
+        assertTrue(it.coordinator.players.value.isEmpty(), "nothing was created")
+    }
+
+    @Test
+    fun duplicateItemIdsAreRejectedBeforeAPlayerIsCreated() = coordinatorTest {
+        assertFailsWith<IllegalArgumentException> {
+            it.coordinator.controllerFor("feed-1", items = listOf(item("a"), item("a")))
+        }
+        assertTrue(it.coordinator.players.value.isEmpty(), "nothing was created")
+    }
+
+    @Test
     fun ownedControllerIsReleasedAfterRetentionWithoutSurface() = coordinatorTest {
         val first = it.coordinator.controllerFor("feed-1") as DefaultPlayerController
         val surface = Any()
@@ -307,7 +342,7 @@ class PlayerCoordinatorTest {
     // region Fullscreen
 
     @Test
-    fun enterFullscreenWithoutAHostDoesNothing() = coordinatorTest {
+    fun enterFullscreenDoesNothingUnlessEnabled() = coordinatorTest {
         val a = it.player()
 
         a.controller.enterFullscreen()
@@ -319,23 +354,13 @@ class PlayerCoordinatorTest {
     }
 
     @Test
-    fun aHostMakesFullscreenAvailableToAllPlayers() = coordinatorTest {
-        val before = it.player()
-        val unregister = it.registerHost()
-        val after = it.player()
-
-        assertTrue(before.controller.state.value.isFullscreenAvailable)
-        assertTrue(after.controller.state.value.isFullscreenAvailable)
-
-        unregister()
-        assertFalse(before.controller.state.value.isFullscreenAvailable)
-        assertFalse(after.controller.state.value.isFullscreenAvailable)
+    fun enablingFullscreenMakesItAvailable() = coordinatorTest {
+        assertTrue(it.player(Fullscreen).controller.state.value.isFullscreenAvailable)
     }
 
     @Test
     fun fullscreenChangesWhereTheVideoIsShownNotWhatPlays() = coordinatorTest {
-        it.registerHost()
-        val a = it.player()
+        val a = it.player(Fullscreen)
         a.load("x")
         a.controller.setMuted(true)
         val before = a.controller.state.value
@@ -358,9 +383,8 @@ class PlayerCoordinatorTest {
 
     @Test
     fun anotherPlayerTakingFullscreenReturnsThePreviousOneInline() = coordinatorTest {
-        it.registerHost()
-        val a = it.player()
-        val b = it.player()
+        val a = it.player(Fullscreen)
+        val b = it.player(Fullscreen)
         a.controller.enterFullscreen()
 
         b.controller.enterFullscreen()
@@ -371,28 +395,23 @@ class PlayerCoordinatorTest {
     }
 
     @Test
-    fun releasingTheFullscreenPlayerEmptiesTheHost() = coordinatorTest {
-        it.registerHost()
-        val a = it.player()
+    fun aReleasedPlayerReturnsInline() = coordinatorTest {
+        val a = it.player(Fullscreen)
         a.controller.enterFullscreen()
 
         a.controller.release()
 
         assertEquals(null, it.coordinator.fullscreenPlayer.value)
-    }
-
-    @Test
-    fun theFullscreenPlayerStaysWhileTheHostIsRecreated() = coordinatorTest {
-        val unregister = it.registerHost()
-        val a = it.player()
-        a.controller.enterFullscreen()
-
-        // As on Android rotation: the old host leaves before the new one arrives.
-        unregister()
-        it.registerHost()
-
-        assertSame(a.controller, it.coordinator.fullscreenPlayer.value)
-        assertEquals(Presentation.Fullscreen, a.controller.state.value.presentation)
+        // Apps show fullscreen from the presentation, so a released player must not stay fullscreen.
+        assertEquals(Presentation.Inline, a.controller.state.value.presentation)
+        assertEquals(
+            listOf(
+                PlayerEventType.PresentationChanged(Presentation.Fullscreen, Presentation.Inline),
+                PlayerEventType.PlayerReleased,
+                PlayerEventType.PlayerUnregistered,
+            ),
+            it.eventsOf(a).takeLast(3),
+        )
     }
 
     // endregion
@@ -603,9 +622,6 @@ class PlayerCoordinatorTest {
             return TestPlayer(controller(coordinator, configuration, engines), engines)
         }
 
-        @OptIn(InternalVideoPlayerApi::class)
-        fun registerHost(): () -> Unit = coordinator.registerFullscreenHost()
-
         fun eventsOf(player: TestPlayer): List<PlayerEventType> =
             events.filter { it.playerId == player.controller.id }.map { it.type }
 
@@ -640,6 +656,8 @@ class PlayerCoordinatorTest {
         )
 
         val Muted = PlayerConfiguration(playback = PlaybackConfig(initialMuted = true))
+
+        val Fullscreen = PlayerConfiguration(fullscreenEnabled = true)
 
         fun item(id: String) = MediaItem(id, MediaSource.Url("https://example.com/$id.m3u8"))
     }

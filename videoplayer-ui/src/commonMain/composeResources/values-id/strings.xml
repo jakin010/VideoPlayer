@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">Bunyikan</string>
     <string name="videoplayer_enter_fullscreen">Layar penuh</string>
     <string name="videoplayer_exit_fullscreen">Keluar dari layar penuh</string>
+    <string name="videoplayer_rotate_left">Rotasi ke kiri</string>
+    <string name="videoplayer_rotate_right">Rotasi ke kanan</string>
     <string name="videoplayer_retry">Coba lagi</string>
     <string name="videoplayer_error_generic">Tidak dapat memutar video</string>
     <string name="videoplayer_position">Posisi video</string>

@@ -193,6 +193,7 @@ internal val ParityScenarios = listOf(
     },
     ParityScenario(
         name = "fullscreen",
+        configuration = Muted.copy(fullscreenEnabled = true),
         expected = listOf(
             "ItemChanged(null)", "FirstFrameRendered", "PlaybackStarted(first=true)",
             "PresentationChanged(Inline->Fullscreen)", "PresentationChanged(Fullscreen->Inline)",

@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">ድምጽ አብራ</string>
     <string name="videoplayer_enter_fullscreen">ሙሉ ማያ ገጽ</string>
     <string name="videoplayer_exit_fullscreen">ከሙሉ ማያ ገጽ ውጣ</string>
+    <string name="videoplayer_rotate_left">ወደ ግራ አዙር</string>
+    <string name="videoplayer_rotate_right">ወደ ቀኝ አዙር</string>
     <string name="videoplayer_retry">እንደገና ሞክር</string>
     <string name="videoplayer_error_generic">ቪዲዮውን ማጫወት አልተቻለም</string>
     <string name="videoplayer_position">የቪዲዮ ቦታ</string>

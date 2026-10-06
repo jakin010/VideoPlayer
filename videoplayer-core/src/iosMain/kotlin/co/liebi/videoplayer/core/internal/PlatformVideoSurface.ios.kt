@@ -12,7 +12,11 @@ import platform.AVFoundation.AVLayerVideoGravityResize
 import platform.AVFoundation.AVLayerVideoGravityResizeAspect
 import platform.AVFoundation.AVLayerVideoGravityResizeAspectFill
 import platform.AVFoundation.AVPlayerLayer
+import kotlinx.cinterop.useContents
+import platform.CoreGraphics.CGAffineTransformMakeRotation
+import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
+import kotlin.math.PI
 import platform.QuartzCore.CATransaction
 import platform.UIKit.UIColor
 import platform.UIKit.UIView
@@ -24,6 +28,7 @@ internal actual fun PlatformVideoSurface(
     videoSize: IntSize?,
     contentScale: VideoContentScale,
     keepPreviousFrame: Boolean,
+    rotation: Int,
     modifier: Modifier,
 ) {
     val layer = (engine as? AVPlaybackEngine)?.playerLayer?.takeIf { isActive }
@@ -31,8 +36,8 @@ internal actual fun PlatformVideoSurface(
     UIKitView(
         factory = { VideoLayerHostView() },
         modifier = modifier,
-        update = { it.host(layer, gravity, keepPreviousFrame) },
-        onRelease = { it.host(null, gravity, keepPrevious = false) },
+        update = { it.host(layer, gravity, keepPreviousFrame, rotation) },
+        onRelease = { it.host(null, gravity, keepPrevious = false, rotation = 0) },
         // Not placed as an overlay, so Compose content such as controls draws above the video.
         properties = UIKitInteropProperties(isInteractive = false, isNativeAccessibilityEnabled = false),
     )
@@ -53,6 +58,7 @@ private fun VideoContentScale.toVideoGravity(): AVLayerVideoGravity = when (this
 private class VideoLayerHostView : UIView(frame = CGRectMake(0.0, 0.0, 0.0, 0.0)) {
     private var hostedLayer: AVPlayerLayer? = null
     private var previousLayer: AVPlayerLayer? = null
+    private var rotation = 0
 
     init {
         clipsToBounds = true
@@ -61,7 +67,11 @@ private class VideoLayerHostView : UIView(frame = CGRectMake(0.0, 0.0, 0.0, 0.0)
         backgroundColor = UIColor.blackColor
     }
 
-    fun host(layer: AVPlayerLayer?, gravity: AVLayerVideoGravity, keepPrevious: Boolean) {
+    fun host(layer: AVPlayerLayer?, gravity: AVLayerVideoGravity, keepPrevious: Boolean, rotation: Int) {
+        if (this.rotation != rotation) {
+            this.rotation = rotation
+            layoutLayers()
+        }
         if (hostedLayer !== layer) {
             val old = hostedLayer
             hostedLayer = layer
@@ -98,8 +108,20 @@ private class VideoLayerHostView : UIView(frame = CGRectMake(0.0, 0.0, 0.0, 0.0)
     private fun layoutLayers() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        hostedLayer?.frame = bounds
-        previousLayer?.frame = bounds
+        hostedLayer?.let(::place)
+        previousLayer?.let(::place)
         CATransaction.commit()
+    }
+
+    /**
+     * Sizes [layer] to this view, turned by [rotation]. The layer moves between surfaces, so the transform is
+     * always set, back to none when not turned. With a transform, `frame` is undefined: bounds and position are set.
+     */
+    private fun place(layer: AVPlayerLayer) {
+        val (width, height) = bounds.useContents { size.width to size.height }
+        val turned = rotation % 180 != 0
+        layer.setAffineTransform(CGAffineTransformMakeRotation(rotation * PI / 180))
+        layer.bounds = CGRectMake(0.0, 0.0, if (turned) height else width, if (turned) width else height)
+        layer.position = CGPointMake(width / 2, height / 2)
     }
 }

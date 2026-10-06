@@ -7,6 +7,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.IntSize
 import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.SURFACE_TYPE_SURFACE_VIEW
+import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import androidx.media3.ui.compose.modifiers.resizeWithContentScale
 import co.liebi.videoplayer.core.VideoContentScale
 
@@ -17,18 +18,18 @@ internal actual fun PlatformVideoSurface(
     videoSize: IntSize?,
     contentScale: VideoContentScale,
     keepPreviousFrame: Boolean,
+    rotation: Int,
     modifier: Modifier,
 ) {
-    // A SurfaceView keeps showing its last frame until the next player draws, so nothing to do for keepPreviousFrame.
+    // Both view types keep showing their last frame until the next player draws, so nothing to do for keepPreviousFrame.
     val player = (engine as? ExoPlaybackEngine)?.player?.takeIf { isActive }
+    val sourceSize = videoSize?.let { Size(it.width.toFloat(), it.height.toFloat()) }
     PlayerSurface(
         player = player,
-        // SurfaceView is the cheapest on battery (§10).
-        surfaceType = SURFACE_TYPE_SURFACE_VIEW,
-        modifier = modifier.resizeWithContentScale(
-            contentScale = contentScale.toComposeContentScale(),
-            sourceSizeDp = videoSize?.let { Size(it.width.toFloat(), it.height.toFloat()) },
-        ),
+        // SurfaceView is the cheapest on battery (§10), but its content ignores view transforms, so a turned
+        // video draws into a TextureView instead.
+        surfaceType = if (rotation == 0) SURFACE_TYPE_SURFACE_VIEW else SURFACE_TYPE_TEXTURE_VIEW,
+        modifier = modifier.turned(rotation).resizeWithContentScale(contentScale.toComposeContentScale(), sourceSize),
     )
 }
 

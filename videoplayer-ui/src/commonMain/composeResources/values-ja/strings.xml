@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">ミュート解除</string>
     <string name="videoplayer_enter_fullscreen">全画面表示</string>
     <string name="videoplayer_exit_fullscreen">全画面表示を終了</string>
+    <string name="videoplayer_rotate_left">左に回転</string>
+    <string name="videoplayer_rotate_right">右に回転</string>
     <string name="videoplayer_retry">再試行</string>
     <string name="videoplayer_error_generic">動画を再生できません</string>
     <string name="videoplayer_position">再生位置</string>

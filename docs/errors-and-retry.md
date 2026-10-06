@@ -49,4 +49,4 @@ The mapping code is in `ExoErrorMapping.kt` (Android) and `AVErrorMapping.kt` (i
 
 ## Logging
 
-The library logs warnings with the `LiebiVideoPlayer` tag on Android and a `[LiebiVideoPlayer]` prefix in the iOS console: commands sent to a released player, unknown item IDs, `enterFullscreen()` without a host, a refresher that threw, and the player cap being exceeded. Its own messages never contain URLs, header values or cookie values. Media3 and AVFoundation write their own logs, which the library doesn't control.
+The library logs warnings with the `LiebiVideoPlayer` tag on Android and a `[LiebiVideoPlayer]` prefix in the iOS console: commands sent to a released player, unknown item IDs, `enterFullscreen()` without `fullscreenEnabled`, a refresher that threw, and the player cap being exceeded. Its own messages never contain URLs, header values or cookie values. Media3 and AVFoundation write their own logs, which the library doesn't control.

@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">Stummschaltung aufheben</string>
     <string name="videoplayer_enter_fullscreen">Vollbild</string>
     <string name="videoplayer_exit_fullscreen">Vollbild beenden</string>
+    <string name="videoplayer_rotate_left">Nach links drehen</string>
+    <string name="videoplayer_rotate_right">Nach rechts drehen</string>
     <string name="videoplayer_retry">Erneut versuchen</string>
     <string name="videoplayer_error_generic">Video kann nicht abgespielt werden</string>
     <string name="videoplayer_position">Videoposition</string>

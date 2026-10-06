@@ -13,9 +13,8 @@ VideoPlayer(
     contentScale = VideoContentScale.Crop,      // Fit, Crop or Fill
     poster = { MyPoster() },
     hideControlsAfter = 3.seconds,
-    tapTogglesControls = true,
-    holdToPause = true,
-    doubleTapSeek = DoubleTapSeek(),            // null turns it off
+    gestures = VideoGestures(),                 // each gesture can be turned off, see Gestures
+    customGestures = Modifier,                  // the app's own gestures on the video
     loading = { LoadingIndicator() },           // slot
     error = { error, retry -> ErrorPanel(retry) }, // slot
 )
@@ -24,13 +23,14 @@ VideoPlayer(
 It shows:
 
 - the play/pause and mute buttons above a full-width scrubber at the bottom (`PlayerControls`),
-- a fullscreen button in the top right, once a `FullscreenHost` is placed (see [Fullscreen](fullscreen.md)),
+- a fullscreen button in the top right (`FullscreenControls`) when the player has `fullscreenEnabled` (see [Fullscreen](fullscreen.md)),
+- the seek and swipe feedback (`SeekIndicator`, `SwipeIndicator`),
 - the loading spinner while preparing, buffering or seeking, after half a second so quick stalls don't flash,
 - the error panel with a Retry button when the player fails.
 
 ## VideoPlayerSurface
 
-The video alone, from `videoplayer-core`. It fills the width it gets and takes its height from `aspectRatio`. It handles no input, so gestures and controls can be layered on top.
+The video and its [gestures](#gestures), from `videoplayer-core`. It fills the width it gets and takes its height from `aspectRatio`. Controls can be layered on top.
 
 ```kotlin
 VideoPlayerSurface(
@@ -39,37 +39,79 @@ VideoPlayerSurface(
     contentScale = VideoContentScale.Crop,
     poster = { MyPoster() },
     posterDelay = 1.seconds,
+    rotationDegrees = 0,                       // 0, 90, 180 or 270, clockwise
+    gestures = VideoGestures(),                // VideoGestures.None for a surface without gestures
+    gestureState = rememberVideoGestureState(), // for feedback drawn on top
+    onTap = { visibility.toggle() },           // what a single tap does
+    customGestures = Modifier,                 // the app's own gestures
 )
 ```
 
 - `Native` follows the video size, or 16:9 until it is known. Aspect changes under 1 % (HLS quality switches) are ignored so the surface doesn't jump.
 - The poster covers the area until the first frame. When switching items, the last frame stays on screen and the poster only appears if the next first frame takes longer than `posterDelay`, so quick switches go straight from video to video.
-- On Android it uses a `SurfaceView` (cheapest on battery); on iOS an `AVPlayerLayer` in a `UIKitView`.
+- `rotationDegrees` turns the video inside the area. With `Native`, the area takes the turned video's shape. The poster isn't turned; the gestures are, so they follow the video. `FullscreenVideoPlayer` uses it to turn the view, see [Fullscreen](fullscreen.md#turning-the-view).
+- On Android it uses a `SurfaceView` (cheapest on battery), or a `TextureView` while turned, because a `SurfaceView` can't be rotated. On iOS it uses an `AVPlayerLayer` in a `UIKitView`.
 
 ## Building your own layout
 
 ```kotlin
 val visibility = rememberControlsVisibility(controller)
-val gestures = rememberVideoGestures(controller, visibility = visibility)
+val gestureState = rememberVideoGestureState()
 
-Box(Modifier.videoGestures(gestures)) {
-    VideoPlayerSurface(controller)
-    SeekIndicator(gestures, Modifier.matchParentSize())
+Box {
+    VideoPlayerSurface(controller, gestureState = gestureState, onTap = visibility::toggle)
+    SeekIndicator(gestureState, Modifier.matchParentSize())
+    SwipeIndicator(gestureState, Modifier.matchParentSize())
     PlayerControls(controller, Modifier.align(Alignment.BottomStart), visibility = visibility)
+    FullscreenControls(controller, Modifier.align(AbsoluteAlignment.TopRight), visibility = visibility)
 }
 ```
 
 | Part | What it does |
 |---|---|
-| `PlayerControls` | Play/pause, mute and the scrubber; nothing else |
+| `PlayerControls` | Play/pause, mute and the scrubber, for the bottom |
+| `FullscreenControls` | The fullscreen or exit button, with the rotate buttons in a turnable fullscreen view, for the top right |
+| `FullscreenVideoPlayer` | A whole fullscreen player, for the app to show while a player is fullscreen. See [Fullscreen](fullscreen.md) |
 | `PlayPauseButton` | Pause while play intent is set (also while buffering), play otherwise, replay in `Ended` |
 | `MuteButton` | Toggles mute; unmuting restores the volume |
-| `FullscreenButton` | Enters or exits fullscreen; hidden without a host |
+| `FullscreenButton` | Enters or exits fullscreen; hidden unless the player has `fullscreenEnabled` |
+| `RotateLeftButton`, `RotateRightButton` | Turn the fullscreen view 90 degrees. Pass them `LocalFullscreenViewRotation.current` in custom fullscreen controls |
 | `PlayerScrubber` | Played, buffered and remaining media; seeks by dragging |
 | `SeekIndicator` | Feedback for double-tap seeks, such as "+30 s" on the tapped side |
+| `SwipeIndicator` | Feedback while swiping into or out of fullscreen: a chevron that fades in as the finger travels |
 | `LoadingIndicator`, `ErrorPanel` | The default loading and error content |
 
-Every control takes `colors: PlayerControlsColors`. Change them with `PlayerControlsDefaults.colors(contentColor = …, playedTrackColor = …)`. Sizes and spacing are in `PlayerControlsDefaults`.
+Colors and icons come from the [theme](#theme). Every control also takes `colors: PlayerControlsColors`, which wins over the theme for that control. Sizes and spacing are in `PlayerControlsDefaults`.
+
+## Theme
+
+`VideoPlayerTheme` holds the colors and icons of the whole player UI: every control, the seek and swipe feedback, loading and error, and the fullscreen player. Provide it once around the app content, including wherever it shows `FullscreenVideoPlayer`:
+
+```kotlin
+val playerTheme = VideoPlayerTheme(
+    colors = PlayerControlsDefaults.colors(
+        contentColor = Color.White,
+        playedTrackColor = brandColor,
+        thumbColor = brandColor,
+    ),
+    icons = VideoPlayerIcons().copy(
+        play = VideoPlayerIcon(Res.drawable.my_play),             // a Compose resource
+        pause = VideoPlayerIcon(MyIcons.Pause, 14.dp),             // an ImageVector
+        enterFullscreen = VideoPlayerIcon(painterResource(Res.drawable.my_expand), 12.dp, 12.dp),
+    ),
+)
+
+ProvideVideoPlayerTheme(playerTheme) {
+    AppContent()
+}
+```
+
+- **Switching themes**: pass a different theme, and everything showing restyles on the next frame, including a fullscreen player. Keep the theme in state, or derive it from the app's own theme, for example `if (isSystemInDarkTheme()) darkPlayerTheme else lightPlayerTheme`. Playback isn't affected.
+- **Colors**: `PlayerControlsColors` has the icon color (`contentColor`), the circle behind buttons and feedback (`buttonContainerColor`), and the scrubber's played, buffered and remaining track and thumb colors. `PlayerControlsDefaults.colors(...)` starts from the defaults.
+- **Icons**: `VideoPlayerIcons` has one `VideoPlayerIcon` per place: `play`, `pause`, `replay`, `soundOn`, `soundOff`, `enterFullscreen`, `exitFullscreen`, `rotateLeft`, `rotateRight`, `seekBack`, `seekForward`, `swipeUp` and `swipeDown`. Use `copy` to replace only some.
+- **One icon**: a `DrawableResource`, an `ImageVector` or a `Painter`, with the `width` and `height` it is drawn at (12 dp square by default, the icon fitted inside and centered). Icons are drawn in `contentColor`; pass `tinted = false` to keep an icon's own colors. A `Painter` comes from composition (`painterResource`, `rememberVectorPainter`), so a theme with one is built inside a composable.
+- **One player different**: nest another `ProvideVideoPlayerTheme` around that player, or pass `colors` to it.
+- Themes compare by value, so creating an equal theme again doesn't restyle anything.
 
 ## Auto-hide
 
@@ -82,19 +124,47 @@ Controls can't know whether they sit over the video, so auto-hide is a state obj
 
 ## Gestures
 
-`rememberVideoGestures(controller, visibility, holdToPause, doubleTapSeek)` plus `Modifier.videoGestures(gestures)` on the surface or any overlay above it:
+The gestures live on `VideoPlayerSurface`, so every player has them: `VideoPlayer`, `FullscreenVideoPlayer` and custom layouts alike. `VideoGestures` turns each one on or off; all are on by default:
 
-| Gesture | Effect |
-|---|---|
-| Tap | Toggles the controls, if a visibility state is passed. Acts after the double-tap timeout when double-tap seek is on. |
-| Double tap left / right | Seeks one step back / forward. Each further tap on the same side adds a step. |
-| Double tap in the middle 20 % | Nothing |
-| Press and hold | Pauses while held, resumes on release. Never shows the controls. |
+```kotlin
+VideoPlayer(controller, gestures = VideoGestures(holdToPause = false, doubleTapSeek = DoubleTapSeek(step = 5.seconds)))
+VideoPlayer(controller, gestures = VideoGestures.None) // no built-in gestures
+```
+
+| Gesture | Option | Effect |
+|---|---|---|
+| Tap | `tap` | Calls the surface's `onTap`; `VideoPlayer` toggles its controls. Acts after the double-tap timeout when double-tap seek is on. |
+| Double tap left / right | `doubleTapSeek` (`null` turns it off) | Seeks one step back / forward. Each further tap on the same side adds a step. |
+| Double tap in the middle 20 % | | Nothing |
+| Press and hold | `holdToPause` | Pauses while held, resumes on release. Never shows the controls. |
+| Swipe up and release | `swipeToFullscreen` | Enters fullscreen, when the player has `fullscreenEnabled` |
+| Swipe down and release, in fullscreen | `swipeToFullscreen` | Leaves fullscreen |
 
 - Hold starts after the platform long-press timeout without moving past touch slop, so scrolling a feed never triggers it. It does nothing on a paused, ended or failed player.
 - Double-tap seek never changes play intent and does nothing on media that can't seek.
-- Touches a child control consumed are ignored, so tapping a button never toggles the controls.
-- `gestures.seekFeedback` and `gestures.isHolding` are readable state for custom feedback.
+- A swipe must be mostly vertical and travel at least 48 dp before release. Once it moves past touch slop in the direction that counts, the player claims it, so a scrolling parent doesn't scroll. Other drags are left to the parent. Turn swiping off with `swipeToFullscreen = false` in scrolling feeds. See [Fullscreen](fullscreen.md#swiping).
+- Controls drawn over the surface take their own touches, so tapping a button never toggles the controls.
+- Gestures nothing handles leave touches alone: a surface without `onTap` and without double-tap seek doesn't claim taps, and with `VideoGestures.None` it takes no touches at all, so a `clickable` around it still works.
+- In a turned surface (`rotationDegrees`), the gestures turn with the video: the video's right side seeks forward, and down is down for the video.
+- While a swipe is claimed, `SwipeIndicator` shows a chevron in its direction in the center. It fades in, grows and drifts to the center as the finger travels, is fully shown once releasing will act, and fades out on release.
+- `VideoGestureState` holds `seekFeedback`, `swipeFeedback` (direction and progress from 0 to 1) and `isHolding`, readable state for custom feedback. Pass the same state to the surface and to the feedback.
+
+### Your own gestures
+
+`customGestures` on `VideoPlayer`, `FullscreenVideoPlayer` and `VideoPlayerSurface` adds the app's gestures to the video, as gesture modifiers:
+
+```kotlin
+VideoPlayer(
+    controller,
+    customGestures = Modifier.pointerInput(Unit) {
+        detectHorizontalDragGestures(onDragEnd = { playNext() }) { _, _ -> }
+    },
+)
+```
+
+- They see each touch before the built-in gestures. A touch they consume is ignored by the built-in gestures, so an app can take a gesture over, for example its own double tap. Touches they leave alone still reach the built-in gestures.
+- In a turned view they turn with the video too, so their positions are in the video's frame.
+- Key `pointerInput` the way Compose expects, for example on `Unit` or on the values the gesture reads.
 
 ## Scrubbing
 
@@ -107,7 +177,7 @@ Controls can't know whether they sit over the video, so auto-hide is a state obj
 ## Right-to-left and accessibility
 
 - Media controls never mirror: left is always back, right always forward, in every language. Only text follows the layout direction.
-- Every control exposes a role, a label and its state (Play or Pause, Mute or Unmute, Fullscreen or Exit fullscreen, Retry).
+- Every control exposes a role, a label and its state (Play or Pause, Mute or Unmute, Fullscreen or Exit fullscreen, Rotate left, Rotate right, Retry).
 - The scrubber reads like "Video position, 1 minute 24 seconds of 3 minutes 12 seconds". TalkBack and VoiceOver adjustments seek about 10 s per step.
 - Loading and error changes are announced.
 
@@ -119,4 +189,4 @@ Controls can't know whether they sit over the video, so auto-hide is a state obj
 - On iOS, the app must declare its languages in `CFBundleLocalizations` for right-to-left layouts to apply, see [Getting started](getting-started.md#ios).
 - The translations haven't been reviewed by native speakers yet.
 - For different wording without changing the library, pass your own `loading` and `error` content.
-- Icons are vector drawables in `composeResources/drawable/`, supplied with the project. Don't add icon libraries; ask for a new icon when one is missing.
+- The default icons are vector drawables in `composeResources/drawable/`, supplied with the project. Apps replace them through the [theme](#theme). Inside the library, don't add icon libraries or make icons; ask for a new icon when one is missing.

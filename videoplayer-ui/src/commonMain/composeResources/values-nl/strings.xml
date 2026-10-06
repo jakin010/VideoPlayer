@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">Dempen opheffen</string>
     <string name="videoplayer_enter_fullscreen">Volledig scherm</string>
     <string name="videoplayer_exit_fullscreen">Volledig scherm sluiten</string>
+    <string name="videoplayer_rotate_left">Naar links draaien</string>
+    <string name="videoplayer_rotate_right">Naar rechts draaien</string>
     <string name="videoplayer_retry">Opnieuw proberen</string>
     <string name="videoplayer_error_generic">Kan video niet afspelen</string>
     <string name="videoplayer_position">Videopositie</string>

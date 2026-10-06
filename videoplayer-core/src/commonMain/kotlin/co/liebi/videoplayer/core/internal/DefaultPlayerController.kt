@@ -19,6 +19,7 @@ import co.liebi.videoplayer.core.PlayerLifecycle
 import co.liebi.videoplayer.core.PlayerState
 import co.liebi.videoplayer.core.Presentation
 import co.liebi.videoplayer.core.SourceRefresher
+import co.liebi.videoplayer.core.requireUniqueIds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -72,7 +73,7 @@ internal class DefaultPlayerController(
             isMuted = configuration.playback.initialMuted,
             playbackSpeed = configuration.playback.initialPlaybackSpeed,
             autoReplay = configuration.playback.autoReplay,
-            isFullscreenAvailable = coordinator.isFullscreenAvailable,
+            isFullscreenAvailable = configuration.fullscreenEnabled,
         ),
     )
     override val state: StateFlow<PlayerState> = _state.asStateFlow()
@@ -241,8 +242,7 @@ internal class DefaultPlayerController(
     }
 
     override fun setItems(items: List<MediaItem>) {
-        val duplicates = items.groupingBy { it.id }.eachCount().filterValues { it > 1 }.keys
-        require(duplicates.isEmpty()) { "Duplicate MediaItem ids: $duplicates" }
+        requireUniqueIds(items)
         command("setItems") {
             val previous = this.items
             this.items = items.toList()
@@ -319,10 +319,11 @@ internal class DefaultPlayerController(
 
     override fun enterFullscreen() = command("enterFullscreen") {
         if (_state.value.presentation == Presentation.Fullscreen) return@command
-        if (!coordinator.showFullscreen(this)) {
-            log("enterFullscreen ignored: no FullscreenHost is placed for this player's coordinator")
+        if (!configuration.fullscreenEnabled) {
+            log("enterFullscreen ignored: fullscreenEnabled is off in this player's configuration")
             return@command
         }
+        coordinator.showFullscreen(this)
         setPresentation(Presentation.Fullscreen)
     }
 
@@ -340,6 +341,11 @@ internal class DefaultPlayerController(
             progressJob?.cancel()
             suspendJob?.cancel()
             retentionJob?.cancel()
+            // Apps show fullscreen from the presentation, so a released player must not stay fullscreen.
+            if (_state.value.presentation == Presentation.Fullscreen) {
+                coordinator.hideFullscreen(this)
+                setPresentation(Presentation.Inline)
+            }
             emit(PlayerEventType.PlayerReleased)
             releaseEngine()
             releasePreparedItems()
@@ -960,11 +966,7 @@ internal class DefaultPlayerController(
         if (!isReleased && _state.value.isPlayingOrHeld) clearPlayIntent(PauseReason.Coordinator)
     }
 
-    fun setFullscreenAvailable(available: Boolean) = operation {
-        if (!isReleased) _state.update { it.copy(isFullscreenAvailable = available) }
-    }
-
-    /** Another player took the fullscreen host. */
+    /** Another player of the coordinator went fullscreen. */
     fun leaveFullscreen() = operation {
         if (!isReleased && _state.value.presentation == Presentation.Fullscreen) setPresentation(Presentation.Inline)
     }

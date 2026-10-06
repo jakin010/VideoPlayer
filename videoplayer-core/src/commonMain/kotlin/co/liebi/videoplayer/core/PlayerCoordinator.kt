@@ -46,7 +46,7 @@ public data class CoordinatorConfig(
 
 /**
  * Owns everything that spans players (§14): the registry, coordinator-owned controllers, the single active
- * player policy, the native player cap, the fullscreen host, audio focus and interruptions, backgrounding,
+ * player policy, the native player cap, which player is fullscreen, audio focus and interruptions, backgrounding,
  * and one merged event stream. Every controller belongs to exactly one coordinator; [Default] is used unless
  * another one is passed.
  *
@@ -72,7 +72,11 @@ public class PlayerCoordinator internal constructor(
 
     private val _fullscreenPlayer = MutableStateFlow<PlayerController?>(null)
 
-    /** The player shown by the `FullscreenHost`, or `null` (§12). */
+    /**
+     * The player that is fullscreen, or `null` (§12). Only one player of a coordinator is fullscreen at a time.
+     * An app can show all of a coordinator's players fullscreen from one place with it:
+     * `coordinator.fullscreenPlayer.collectAsState().value?.let { FullscreenVideoPlayer(it) }`.
+     */
     public val fullscreenPlayer: StateFlow<PlayerController?> = _fullscreenPlayer.asStateFlow()
 
     private val controllers = mutableListOf<DefaultPlayerController>()
@@ -80,7 +84,6 @@ public class PlayerCoordinator internal constructor(
     private val lastUsed = mutableMapOf<DefaultPlayerController, Long>()
     private var useCount = 0L
     private var isAudible = false
-    private var fullscreenHosts = 0
 
     // Held here because the platform keeps only a weak reference.
     private val systemEvents = object : SystemEvents {
@@ -111,37 +114,26 @@ public class PlayerCoordinator internal constructor(
         if (config.manageAudioSession) system.onAudibleChanged(false)
     }
 
-    /** Whether a `FullscreenHost` is placed for this coordinator. */
-    internal val isFullscreenAvailable: Boolean
-        get() = fullscreenHosts > 0
-
-    /**
-     * Registers a fullscreen host and returns the function that unregisters it. Called by `FullscreenHost`.
-     * The player stays fullscreen while hosts come and go, so a host recreated on rotation picks it up again.
-     */
-    @InternalVideoPlayerApi
-    public fun registerFullscreenHost(): () -> Unit {
-        if (fullscreenHosts++ == 0) controllers.toList().forEach { it.setFullscreenAvailable(true) }
-        var registered = true
-        return {
-            if (registered) {
-                registered = false
-                if (--fullscreenHosts == 0) controllers.toList().forEach { it.setFullscreenAvailable(false) }
-            }
-        }
-    }
-
     /**
      * Gets or creates the coordinator-owned controller for [key]. It suspends when its last surface leaves
      * composition, and the coordinator releases it if nothing reattaches within
-     * [LifecycleConfig.positionRetention]. [configuration] and [sourceRefresher] apply only when it is created.
+     * [LifecycleConfig.positionRetention]. [configuration], [sourceRefresher], [items] and [selectedItemId]
+     * apply only when it is created, as in [PlayerController]; an existing controller keeps its items.
      */
     public fun controllerFor(
         key: String,
         configuration: PlayerConfiguration = PlayerConfiguration(),
         sourceRefresher: SourceRefresher? = null,
-    ): PlayerController = owned[key]?.takeUnless { it.isReleased }
-        ?: createOwned.create(this, key, configuration, sourceRefresher).also { owned[key] = it }
+        items: List<MediaItem> = emptyList(),
+        selectedItemId: String? = items.firstOrNull()?.id,
+    ): PlayerController {
+        owned[key]?.takeUnless { it.isReleased }?.let { return it }
+        requireValidItems(items, selectedItemId)
+        return createOwned.create(this, key, configuration, sourceRefresher).also {
+            owned[key] = it
+            it.setInitialItems(items, selectedItemId)
+        }
+    }
 
     /** Releases every player that belongs to this coordinator. */
     public fun releaseAll() {
@@ -216,13 +208,11 @@ public class PlayerCoordinator internal constructor(
         if (config.manageAudioSession) system.onAudibleChanged(audible)
     }
 
-    /** Makes [controller] the fullscreen player; the previous one returns inline. `false` without a host. */
-    internal fun showFullscreen(controller: DefaultPlayerController): Boolean {
-        if (!isFullscreenAvailable) return false
+    /** Makes [controller] the fullscreen player; the previous one returns inline. */
+    internal fun showFullscreen(controller: DefaultPlayerController) {
         val previous = _fullscreenPlayer.value
         _fullscreenPlayer.value = controller
         if (previous !== controller) (previous as? DefaultPlayerController)?.leaveFullscreen()
-        return true
     }
 
     internal fun hideFullscreen(controller: DefaultPlayerController) {
@@ -270,6 +260,14 @@ private fun createOwnedController(
  * Gets or creates the coordinator-owned controller for [key] (§8). Recommended for lazy lists: the controller
  * and its positions outlive the list item, and the coordinator releases it once it has been off screen for
  * the retention period. The app does not release it.
+ *
+ * ```
+ * val controller = rememberPlayerController(key = video.id, items = listOf(video))
+ * ```
+ *
+ * @param items Set when the controller is created, with [selectedItemId] selected (the first item unless
+ *   given). A controller that already exists for [key] keeps its items and position; call
+ *   [PlayerController.setItems] to change them.
  */
 @Composable
 public fun rememberPlayerController(
@@ -277,12 +275,14 @@ public fun rememberPlayerController(
     coordinator: PlayerCoordinator = PlayerCoordinator.Default,
     configuration: PlayerConfiguration = PlayerConfiguration(),
     sourceRefresher: SourceRefresher? = null,
+    items: List<MediaItem> = emptyList(),
+    selectedItemId: String? = items.firstOrNull()?.id,
 ): PlayerController {
     // Bumped when the controller is released while still composed (after retention, or `releaseAll`),
     // so it is resolved again. Resolving only here, never in the effect, keeps a stale coordinator unused.
     var generation by remember(key, coordinator) { mutableIntStateOf(0) }
     val controller = remember(key, coordinator, generation) {
-        coordinator.controllerFor(key, configuration, sourceRefresher)
+        coordinator.controllerFor(key, configuration, sourceRefresher, items, selectedItemId)
     }
     LaunchedEffect(controller) {
         controller.state.first { it.lifecycle == PlayerLifecycle.Released }

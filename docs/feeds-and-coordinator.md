@@ -1,6 +1,6 @@
 # Feeds and the coordinator
 
-`PlayerCoordinator` owns everything that spans players: the registry, coordinator-owned controllers, the single active player rule, the native player cap, the fullscreen host, audio focus and interruptions, backgrounding, and one merged event stream.
+`PlayerCoordinator` owns everything that spans players: the registry, coordinator-owned controllers, the single active player rule, the native player cap, which player is fullscreen, audio focus and interruptions, backgrounding, and one merged event stream.
 
 Every controller belongs to exactly one coordinator. `PlayerCoordinator.Default` is used unless you pass another one. Most apps need only the default. Use a separate coordinator when a screen needs different rules, for example a feed where only one video may play.
 
@@ -27,18 +27,26 @@ fun Feed(videos: List<MediaItem>, viewModel: FeedViewModel) {
                 key = video.id,
                 coordinator = viewModel.coordinator,
                 configuration = FeedConfiguration,
+                items = listOf(video), // only used when the controller is created
             )
-            LaunchedEffect(controller) {
-                controller.setItems(listOf(video))
-                controller.selectItem(video.id)
-            }
-            VideoPlayer(controller)
+            // Swiping up on a video should scroll the feed, not enter fullscreen.
+            VideoPlayer(controller, gestures = VideoGestures(swipeToFullscreen = false))
         }
     }
 }
 ```
 
-Place a `FullscreenHost(viewModel.coordinator)` at the root of the screen for fullscreen to work in the feed.
+For fullscreen in the feed, add `fullscreenEnabled = true` to `FeedConfiguration` and show the coordinator's fullscreen player above the list. A coordinator has at most one:
+
+```kotlin
+Box(Modifier.fillMaxSize()) {
+    Feed(videos, viewModel)
+    val player by viewModel.coordinator.fullscreenPlayer.collectAsState()
+    player?.let { FullscreenVideoPlayer(it) }
+}
+```
+
+Turn `swipeToFullscreen` off for feed players, as above. A swipe up that starts on a video otherwise enters fullscreen instead of scrolling the list. The fullscreen button and swiping down in fullscreen keep working.
 
 ### What happens while scrolling
 
@@ -84,4 +92,4 @@ A suspended player comes back when it is played or its surface attaches, which m
 
 ## Several coordinators
 
-Each coordinator has its own players, rules and fullscreen host. Audio is shared: the iOS audio session and the Android audio focus are app-wide, so coordinators vote, and the app plays with sound while any coordinator has an unmuted player playing. Players of different coordinators never pause each other for audio. See [Audio and system integration](audio-and-system.md#several-coordinators).
+Each coordinator has its own players, rules and fullscreen player. Audio is shared: the iOS audio session and the Android audio focus are app-wide, so coordinators vote, and the app plays with sound while any coordinator has an unmuted player playing. Players of different coordinators never pause each other for audio. See [Audio and system integration](audio-and-system.md#several-coordinators).

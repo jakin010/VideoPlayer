@@ -1,4 +1,4 @@
-package co.liebi.videoplayer.ui.internal
+package co.liebi.videoplayer.core.internal
 
 internal enum class SeekZone { Back, Middle, Forward }
 

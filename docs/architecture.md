@@ -11,7 +11,7 @@ videoplayer-ui ──► videoplayer-core ◄── videoplayer-test
 | Module | Contents |
 |---|---|
 | `videoplayer-core` | Public API, the common state machine, the coordinator, `VideoPlayerSurface` and the two platform engines |
-| `videoplayer-ui` | Default controls, gestures, auto-hide, `VideoPlayer`, `FullscreenHost`, strings and icons |
+| `videoplayer-ui` | Default controls, auto-hide, feedback, `VideoPlayer`, `FullscreenVideoPlayer`, the theme, strings and icons |
 | `videoplayer-test` | `FakePlayerController` |
 | `videoplayer-sample` | Android and iOS app: Player, Coordinator and Checks tabs |
 | `build-logic` | The `liebi.kmp.library` convention plugin shared by the library modules |
@@ -64,17 +64,18 @@ Because the layer or player moves between surfaces, a handoff (scrolling, fullsc
 
 ## Coordinator
 
-`PlayerCoordinator.kt` keeps the registry, owned controllers by key, least-recently-used order for the player cap, the fullscreen player and host count, and the audible vote. Controllers call it at fixed points: registration, play intent (single active player), before creating an engine (the cap), after each reconcile (audio) and on release.
+`PlayerCoordinator.kt` keeps the registry, owned controllers by key, least-recently-used order for the player cap, the fullscreen player, and the audible vote. Controllers call it at fixed points: registration, play intent (single active player), before creating an engine (the cap), after each reconcile (audio) and on release.
 
 `SystemIntegration` is the platform half. Each coordinator has one, which votes on app-wide audio: `SystemIntegration.android.kt` shares one audio focus request, the headphones receiver and the process lifecycle observer between all coordinators; `SystemIntegration.ios.kt` shares the audio session and the interruption, route-change and app lifecycle notifications. Both hold coordinators weakly.
 
 ## UI module
 
-`VideoPlayer` and `FullscreenHost` share one overlay (`DefaultOverlay`): loading and error in the center, `PlayerControls` at the bottom and `FullscreenButton` in the top right. Auto-hide (`ControlsVisibility`) and gestures (`VideoGestures`) are hoisted state objects, so they work on any layout.
+`VideoPlayer` and `FullscreenVideoPlayer` share one overlay (`DefaultOverlay`): loading and error in the center, `PlayerControls` at the bottom and `FullscreenControls` in the top right, with the rotate buttons in fullscreen. Auto-hide (`ControlsVisibility`) and the gesture feedback (`VideoGestureState`) are hoisted state objects, so they work on any layout.
+
+The gestures themselves are in core, on `VideoPlayerSurface`: a transparent layer above the video and poster, turned with the video, takes the touches. Controls drawn above the surface take their own touches first, so they never reach the gestures. Fullscreen is the app's: `enterFullscreen()` only changes the presentation, and the app shows `FullscreenVideoPlayer` in response.
 
 ## Cross-module internals
 
 A few public declarations exist only so other modules of this project can reach into core. They need `@OptIn(InternalVideoPlayerApi::class)`, which apps should never use:
 
-- `PlayerCoordinator.registerFullscreenHost()`, used by `FullscreenHost`.
 - `VideoPlayerDiagnostics.onNativePlayerCreated`, used by the leak checks.

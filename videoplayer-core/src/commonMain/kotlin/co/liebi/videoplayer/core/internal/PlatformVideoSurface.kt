@@ -11,6 +11,9 @@ import co.liebi.videoplayer.core.VideoContentScale
  *
  * While [keepPreviousFrame] is set, the last frame shown stays visible until [engine] renders its own,
  * so switching items goes from video to video without a gap.
+ *
+ * [rotation] turns the video clockwise by 0, 90, 180 or 270 degrees inside the surface's area. Native video
+ * views don't follow Compose's graphics layers, so each platform rotates its own view.
  */
 @Composable
 internal expect fun PlatformVideoSurface(
@@ -19,5 +22,6 @@ internal expect fun PlatformVideoSurface(
     videoSize: IntSize?,
     contentScale: VideoContentScale,
     keepPreviousFrame: Boolean,
+    rotation: Int,
     modifier: Modifier,
 )

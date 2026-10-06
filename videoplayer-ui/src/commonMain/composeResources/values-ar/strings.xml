@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">إلغاء كتم الصوت</string>
     <string name="videoplayer_enter_fullscreen">ملء الشاشة</string>
     <string name="videoplayer_exit_fullscreen">الخروج من ملء الشاشة</string>
+    <string name="videoplayer_rotate_left">تدوير لليسار</string>
+    <string name="videoplayer_rotate_right">تدوير لليمين</string>
     <string name="videoplayer_retry">إعادة المحاولة</string>
     <string name="videoplayer_error_generic">تعذّر تشغيل الفيديو</string>
     <string name="videoplayer_position">موضع الفيديو</string>

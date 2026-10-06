@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">Sesi aç</string>
     <string name="videoplayer_enter_fullscreen">Tam ekran</string>
     <string name="videoplayer_exit_fullscreen">Tam ekrandan çık</string>
+    <string name="videoplayer_rotate_left">Sola döndür</string>
+    <string name="videoplayer_rotate_right">Sağa döndür</string>
     <string name="videoplayer_retry">Tekrar dene</string>
     <string name="videoplayer_error_generic">Video oynatılamıyor</string>
     <string name="videoplayer_position">Video konumu</string>

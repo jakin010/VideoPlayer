@@ -15,8 +15,8 @@ Read these in order the first time.
 | [State and events](state-and-events.md) | Status, play intent, pause reasons, progress and the event stream |
 | [Media and playlists](media-and-playlists.md) | Media items and sources, headers and cookies, switching items, credential refresh |
 | [Configuration](configuration.md) | Every option and its default |
-| [UI components](ui-components.md) | `VideoPlayer`, the surface, controls, auto-hide and gestures |
-| [Fullscreen](fullscreen.md) | `FullscreenHost`, the fullscreen button and the iOS status bar |
+| [UI components](ui-components.md) | `VideoPlayer`, the surface, controls, the theme (colors and icons), auto-hide and gestures |
+| [Fullscreen](fullscreen.md) | Showing `FullscreenVideoPlayer`, the fullscreen controls, swiping, turning the view and the iOS status bar |
 | [Feeds and the coordinator](feeds-and-coordinator.md) | Many players at once: owned controllers, single active player, the player cap |
 | [Audio and system integration](audio-and-system.md) | Muted playback, audio focus, interruptions, background, keeping the screen awake |
 | [Errors and retry](errors-and-retry.md) | Error categories, automatic retries and expiring credentials |

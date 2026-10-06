@@ -1,4 +1,4 @@
-package co.liebi.videoplayer.ui.internal
+package co.liebi.videoplayer.core.internal
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

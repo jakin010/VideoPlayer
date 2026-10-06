@@ -8,13 +8,15 @@ There are two ways, and the difference is who releases it.
 
 | | App-owned | Coordinator-owned |
 |---|---|---|
-| Create with | `PlayerController(configuration, sourceRefresher, coordinator)` | `rememberPlayerController(key, coordinator, configuration, sourceRefresher)` in composition, or `coordinator.controllerFor(key, …)` |
+| Create with | `PlayerController(configuration, sourceRefresher, coordinator, items, selectedItemId)` | `rememberPlayerController(key, coordinator, configuration, sourceRefresher, items, selectedItemId)` in composition, or `coordinator.controllerFor(key, …)` |
 | Release | The app calls `release()`, for example in `ViewModel.onCleared` | The coordinator releases it after it has been off screen for `positionRetention` (30 s) |
 | Good for | A screen with one player, a player that must survive navigation | Lazy lists and feeds |
 
 Both kinds survive Android configuration changes such as rotation: the app-owned one because it lives in a `ViewModel`, the coordinator-owned one because the coordinator holds it by key. For the second, the coordinator itself must survive too: use `PlayerCoordinator.Default` or keep yours in a `ViewModel`. A controller created in a plain `remember {}` does not survive and should not be used.
 
-`configuration` is fixed when the controller is created. For coordinator-owned controllers, `configuration` and `sourceRefresher` only apply when the key is first used. See [Configuration](configuration.md).
+`configuration` is fixed when the controller is created. For coordinator-owned controllers, `configuration`, `sourceRefresher` and `items` only apply when the key is first used. See [Configuration](configuration.md).
+
+`items` sets the playlist right away and selects `selectedItemId`, the first item unless given; pass `selectedItemId = null` to select nothing yet. It is the same as calling `setItems` and `selectItem` after creating the controller, so selecting starts playback when `playOnItemSelected` is on. A `selectedItemId` that isn't among the items throws.
 
 ## Threading
 

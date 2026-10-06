@@ -38,7 +38,7 @@ public fun PlayerControls(
     controller: PlayerController,
     modifier: Modifier = Modifier,
     visibility: ControlsVisibility? = null,
-    colors: PlayerControlsColors = PlayerControlsDefaults.colors(),
+    colors: PlayerControlsColors = LocalVideoPlayerTheme.current.colors,
     contentPadding: PaddingValues = PlayerControlsDefaults.ContentPadding,
 ) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -79,7 +79,7 @@ private fun ControlsContent(
 internal val ControlsEnter = fadeIn(tween(150))
 internal val ControlsExit = fadeOut(tween(250))
 
-/** Colors of the default controls. */
+/** Colors of the default controls, usually set once in a [VideoPlayerTheme]. */
 @Immutable
 public data class PlayerControlsColors(
     /** Button icons. */
@@ -110,6 +110,9 @@ public object PlayerControlsDefaults {
 
     /** Keeps the track 8 dp from the sides and 6 dp from the bottom; the thumb overhangs the track by 3 dp. */
     public val ContentPadding: PaddingValues = PaddingValues(start = 8.dp, top = 8.dp, end = 8.dp, bottom = 3.dp)
+
+    /** Around [FullscreenControls]; matches the side padding of [PlayerControls]. */
+    public val FullscreenControlsPadding: PaddingValues = PaddingValues(8.dp)
 
     /** White content on translucent black, readable on any video. */
     public fun colors(

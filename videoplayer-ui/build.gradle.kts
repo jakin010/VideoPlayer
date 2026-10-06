@@ -16,7 +16,8 @@ kotlin {
             api(projects.videoplayerCore)
             implementation(libs.compose.animation)
             implementation(libs.compose.foundation)
-            implementation(libs.compose.components.resources)
+            // Public: VideoPlayerIcon takes a DrawableResource.
+            api(libs.compose.components.resources)
             implementation(libs.androidx.navigationevent.compose)
         }
         androidMain.dependencies {

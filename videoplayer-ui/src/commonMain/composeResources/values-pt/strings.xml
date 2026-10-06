@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">Ativar som</string>
     <string name="videoplayer_enter_fullscreen">Tela cheia</string>
     <string name="videoplayer_exit_fullscreen">Sair da tela cheia</string>
+    <string name="videoplayer_rotate_left">Girar para a esquerda</string>
+    <string name="videoplayer_rotate_right">Girar para a direita</string>
     <string name="videoplayer_retry">Tentar novamente</string>
     <string name="videoplayer_error_generic">Não é possível reproduzir o vídeo</string>
     <string name="videoplayer_position">Posição do vídeo</string>

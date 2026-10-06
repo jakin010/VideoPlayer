@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">Slå på ljudet</string>
     <string name="videoplayer_enter_fullscreen">Helskärm</string>
     <string name="videoplayer_exit_fullscreen">Avsluta helskärm</string>
+    <string name="videoplayer_rotate_left">Rotera åt vänster</string>
+    <string name="videoplayer_rotate_right">Rotera åt höger</string>
     <string name="videoplayer_retry">Försök igen</string>
     <string name="videoplayer_error_generic">Det går inte att spela upp videon</string>
     <string name="videoplayer_position">Videoposition</string>

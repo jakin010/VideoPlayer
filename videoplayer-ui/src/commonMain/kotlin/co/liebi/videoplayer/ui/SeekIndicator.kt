@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
@@ -21,33 +19,33 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import co.liebi.videoplayer.core.SeekDirection
+import co.liebi.videoplayer.core.SeekFeedback
+import co.liebi.videoplayer.core.VideoGestureState
 import co.liebi.videoplayer.ui.generated.resources.Res
-import co.liebi.videoplayer.ui.generated.resources.ic_chevron_left
-import co.liebi.videoplayer.ui.generated.resources.ic_chevron_right
 import co.liebi.videoplayer.ui.generated.resources.videoplayer_seek_back
 import co.liebi.videoplayer.ui.generated.resources.videoplayer_seek_forward
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
  * Default double-tap seek feedback: the direction and running total (for example "+30 s") on the tapped
- * side. Place it over the video, for example with `Modifier.matchParentSize()`. Custom feedback can read
- * [VideoGestures.seekFeedback] instead. Never mirrored for right-to-left layouts (§11).
+ * side. Place it over the video, for example with `Modifier.matchParentSize()`, with the same [state] as
+ * the surface. Custom feedback can read [VideoGestureState.seekFeedback] instead. Never mirrored for
+ * right-to-left layouts (§11).
  */
 @Composable
 public fun SeekIndicator(
-    gestures: VideoGestures,
+    state: VideoGestureState,
     modifier: Modifier = Modifier,
-    colors: PlayerControlsColors = PlayerControlsDefaults.colors(),
+    colors: PlayerControlsColors = LocalVideoPlayerTheme.current.colors,
 ) {
-    val feedback = gestures.seekFeedback
+    val feedback = state.seekFeedback
     // Keeps showing the last value while fading out.
     val last = remember { arrayOfNulls<SeekFeedback>(1) }
     if (feedback != null) last[0] = feedback
@@ -85,13 +83,9 @@ private fun SeekPill(feedback: SeekFeedback, colors: PlayerControlsColors) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val tint = ColorFilter.tint(colors.contentColor)
-        if (isBack) {
-            Image(painterResource(Res.drawable.ic_chevron_left), null, Modifier.size(5.5.dp, 11.dp), colorFilter = tint)
-        }
+        val icons = LocalVideoPlayerTheme.current.icons
+        if (isBack) PlayerIcon(icons.seekBack, colors.contentColor)
         BasicText(text, style = TextStyle(color = colors.contentColor, fontSize = 13.sp, fontWeight = FontWeight.SemiBold))
-        if (!isBack) {
-            Image(painterResource(Res.drawable.ic_chevron_right), null, Modifier.size(6.5.dp, 11.dp), colorFilter = tint)
-        }
+        if (!isBack) PlayerIcon(icons.seekForward, colors.contentColor)
     }
 }

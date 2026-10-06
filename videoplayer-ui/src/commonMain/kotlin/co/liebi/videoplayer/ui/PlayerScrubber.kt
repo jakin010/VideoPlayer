@@ -83,7 +83,7 @@ public fun PlayerScrubber(
     controller: PlayerController,
     modifier: Modifier = Modifier,
     visibility: ControlsVisibility? = null,
-    colors: PlayerControlsColors = PlayerControlsDefaults.colors(),
+    colors: PlayerControlsColors = LocalVideoPlayerTheme.current.colors,
 ) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         val state by controller.state.collectAsState()
@@ -132,7 +132,7 @@ public fun PlayerScrubber(
             awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
                 val seekRange = currentRange ?: return@awaitEachGesture
-                // Claimed, so a tap on the scrubber never toggles controls through the video's gestures.
+                // Claimed, so tap handlers around the scrubber don't also act on it.
                 down.consume()
                 val trackWidth = size.width.toFloat()
                 val startPosition = displayedPosition()

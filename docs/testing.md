@@ -17,7 +17,7 @@ assertEquals(listOf(FakePlayerController.Call.Play), controller.calls)
 
 - `calls` lists every command received, in order.
 - `setState`, `updateState`, `setProgress` and `emit(type)` drive it to any situation, such as an error or a stall.
-- `enterFullscreen()` only switches the presentation when `isFullscreenAvailable` is true, like a real player.
+- `enterFullscreen()` only switches the presentation when `isFullscreenAvailable` is true, like a real player with `fullscreenEnabled`. Set it in the fake's initial state.
 - It runs no timers and no playback: progress only moves when you set it.
 
 For previews, pass a fake in the state you want to show:
@@ -34,10 +34,10 @@ fun ErrorPreview() {
 
 | Suite | Where | Runs on |
 |---|---|---|
-| State machine, coordinator, buffer gate | `videoplayer-core/src/commonTest` | JVM and the iOS simulator |
-| Scrubber math, seek zones | `videoplayer-ui/src/commonTest` | JVM and the iOS simulator |
+| State machine, coordinator, buffer gate, seek zones | `videoplayer-core/src/commonTest` | JVM and the iOS simulator |
+| Auto-rotate rules, device tilt, theme equality and scrubber math | `videoplayer-ui/src/commonTest` | JVM and the iOS simulator |
 | Translations complete, with the same placeholders as English | `videoplayer-ui/src/androidHostTest` | JVM |
-| Controls, gestures, fullscreen UI | `videoplayer-ui/src/iosTest` | The iOS simulator |
+| Controls, gestures (each switch and the app's own gestures), swipes and their feedback, fullscreen UI, turning the view and switching themes | `videoplayer-ui/src/iosTest` | The iOS simulator |
 | `FakePlayerController` | `videoplayer-test/src/commonTest` | JVM and the iOS simulator |
 
 ```bash
@@ -53,6 +53,36 @@ To mimic app code that reacts on the main thread while a state change is being m
 ### UI tests
 
 Compose UI tests run on the iOS simulator; Android host tests would need Robolectric. They use `runComposeUiTest` from `androidx.compose.ui.test.v2`. While playing, the scrubber animates every frame, so tests set `mainClock.autoAdvance = false` and advance the clock by hand; otherwise the test never goes idle.
+
+- Swipes use `performTouchInput { swipeUp() }` and friends. A scrolling parent around the player checks that swipes the player doesn't claim still scroll it.
+- `FullscreenContent` takes a hoisted `FullscreenViewRotation`, so tests can turn the view without buttons. Pin `rotation = null` in tests that aren't about turning, or auto-rotate turns a landscape video on the portrait test screen.
+- Tests of a turned view touch through the turned layout: `onNodeWithContentDescription(...).performClick()` hits the button where it is drawn, which proves the turned controls take touches.
+- Theme tests give the theme a probe `Painter` as an icon. It records whether it was drawn and with which color filter, which shows that a switched theme reaches the controls.
+- Swipe feedback tests hoist a `VideoGestureState` into a bare `VideoPlayerSurface` and use `down`, `moveBy` and `up` in separate `performTouchInput` calls, so they can read `swipeFeedback` mid-swipe.
+- `FakePlayerController` isn't a `DefaultPlayerController`, so the surface draws no video for it, but its gestures work.
+- The motion sensors aren't available in tests, so auto-rotate picks clockwise. The direction rules are unit-tested in `FullscreenRotationTest`.
+
+### Checking by hand
+
+Gestures, auto-rotate and turned video need a look on both platforms, because the video is turned natively, outside Compose. With `adb -s emulator-5554 shell input` or the simulator, keep in mind that the controls hide 3 s after the last touch: tap to show them and hit the button within a second, in one command, or the tap lands on the video and only toggles the controls. The simulator has no accelerometer, so it always turns clockwise.
+
+To check the sensor direction on the emulator, lock rotation and tilt its virtual accelerometer with the top to the right, then swipe up on a landscape video; the view should turn counterclockwise. Restore both afterwards:
+
+```bash
+adb -s emulator-5554 shell settings put system accelerometer_rotation 0
+```
+
+```bash
+adb -s emulator-5554 emu sensor set acceleration -9.8:0:0.8
+```
+
+```bash
+adb -s emulator-5554 emu sensor set acceleration 0:9.8:0.8
+```
+
+```bash
+adb -s emulator-5554 shell settings put system accelerometer_rotation 1
+```
 
 ## Checks on the real engines
 

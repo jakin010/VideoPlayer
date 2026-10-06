@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">Rétablir le son</string>
     <string name="videoplayer_enter_fullscreen">Plein écran</string>
     <string name="videoplayer_exit_fullscreen">Quitter le plein écran</string>
+    <string name="videoplayer_rotate_left">Faire pivoter vers la gauche</string>
+    <string name="videoplayer_rotate_right">Faire pivoter vers la droite</string>
     <string name="videoplayer_retry">Réessayer</string>
     <string name="videoplayer_error_generic">Impossible de lire la vidéo</string>
     <string name="videoplayer_position">Position de la vidéo</string>

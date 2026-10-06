@@ -12,6 +12,8 @@ val controller = PlayerController(feedConfiguration)
 
 Aspect ratio and content scale are not configuration: they are parameters of `VideoPlayer` and `VideoPlayerSurface`, because one controller can render into surfaces of different shapes.
 
+UI behavior is set on the composables: gestures on `VideoPlayer`, `FullscreenVideoPlayer` and `VideoPlayerSurface`, and turning on `FullscreenVideoPlayer`. Colors and icons come from `VideoPlayerTheme`, see [UI components](ui-components.md#theme).
+
 ## PlaybackConfig
 
 | Option | Default | Meaning |
@@ -62,6 +64,15 @@ Passed to `PlayerCoordinator(config)`. See [Feeds and the coordinator](feeds-and
 | `maxActivePlayers` | 4 | How many players may hold a native player at once, counting kept items. Protects against hardware decoder limits. Measure on low-end Android devices before changing it. |
 | `manageAudioSession` | `true` | Let the coordinator manage the iOS audio session and Android audio focus. Turn off if the app manages them itself. |
 
+## FullscreenRotation
+
+Passed as `FullscreenVideoPlayer(controller, rotation = ...)`. Pass `null` to never turn the fullscreen view. See [Fullscreen](fullscreen.md#turning-the-view).
+
+| Option | Default | Meaning |
+|---|---|---|
+| `showButtons` | `true` | Rotate-left and rotate-right buttons next to the exit-fullscreen button |
+| `autoRotate` | `true` | Turn the view so the video's long side follows the screen's long side. Square videos are never turned. |
+
 ## Fixed values
 
 These are implementation constants rather than options:
@@ -70,6 +81,9 @@ These are implementation constants rather than options:
 |---|---|
 | Progress updates about every 250 ms while playing | Controller |
 | Suspension about 1 s after the last surface leaves | Controller |
-| Controls hide 3 s after the last interaction | `hideControlsAfter` on `VideoPlayer`, `FullscreenHost` and `rememberControlsVisibility` |
+| Controls hide 3 s after the last interaction | `hideControlsAfter` on `VideoPlayer`, `FullscreenVideoPlayer` and `rememberControlsVisibility` |
 | Double-tap seek step 10 s, middle dead zone 20 % | `DoubleTapSeek(step, deadZone)` |
 | Poster appears after 1 s without a first frame once video has shown | `posterDelay` on `VideoPlayerSurface` |
+| Swipe to enter or leave fullscreen travels at least 48 dp | `VideoGestures.kt` in core |
+| Videos within 10 % of square count as square and are not auto-rotated | `FullscreenRotation.kt` |
+| Auto-rotate waits up to 0.5 s for the first tilt reading to pick its direction | `FullscreenVideoPlayer.kt` |

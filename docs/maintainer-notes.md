@@ -45,7 +45,7 @@ Things to keep in mind:
 - Controllers register in their `init`, at the very end, once every property is initialized. Registering creates an event from the controller's state, so moving `coordinator.register(this)` earlier hands the coordinator a half-initialized controller.
 - A coordinator-owned controller that never gets a surface still suspends after a second and is released after retention. Without that, controllers created by an abandoned composition (such as a cancelled lazy-list prefetch) would live forever.
 - The cap counts kept items too (`nativePlayerCount`). `ensureCapacity` runs before an engine is created, never after.
-- `registerFullscreenHost` counts hosts and keeps the fullscreen player while the count drops to zero, because on Android rotation the old host leaves before the new one arrives.
+- `fullscreenPlayer` only tracks which player is fullscreen, so only one per coordinator is. Showing it is the app's job; the presentation lives in the controller, so it survives the app's fullscreen view leaving and coming back on Android rotation.
 
 ## rememberPlayerController
 
@@ -58,8 +58,50 @@ It resolves the controller in composition, keyed on `(key, coordinator, generati
 - **Scrubber smoothing** (`rememberSmoothPosition` in `PlayerScrubber.kt`): progress arrives every 250 ms, so the thumb is extrapolated every frame from the latest update and the playback speed, and re-anchored on each update. Changes under half a pixel are skipped so long videos don't redraw every frame.
 - **Poster delay** (`VideoPlayerSurface`): once video has been shown, the poster only appears if the next first frame takes longer than `posterDelay`. Meanwhile the surface keeps the previous frame (`keepPreviousFrame`), which needs platform support, see the platform notes.
 - **Stable video size**: aspect changes under 1 % are ignored. HLS renditions differ slightly (512x288 and 848x480 aren't quite the same shape), and resizing the native surface on every switch showed stretched frames.
-- **Touch targets**: buttons are 28 dp but take touches in a 48 dp area through `expandedPointerInput`, without taking layout space. Video gestures ignore touches a child consumed, which is how a tap on a button doesn't toggle the controls.
-- **Fullscreen button placement**: it sits in the top right, outside `PlayerControls`. `PlayerControls` holds only play/pause, mute and the scrubber, by design.
+- **Touch targets**: buttons are 28 dp but take touches in a 48 dp area through `expandedPointerInput`, without taking layout space. The controls are drawn above the surface as its siblings, so a touch on a button never reaches the surface's gestures: Compose sends a touch only to the topmost sibling that takes it.
+- **Fullscreen button placement**: it sits in the top right, outside `PlayerControls`. `PlayerControls` holds only play/pause, mute and the scrubber, by design. In fullscreen, the rotate buttons sit to its left in a row forced left-to-right, so their order doesn't mirror.
+
+## Theme
+
+**Where:** `VideoPlayerTheme.kt`.
+
+- `LocalVideoPlayerTheme` is a `staticCompositionLocalOf`: themes change rarely, and a change restyles everything under the provider anyway. Every `colors` parameter defaults to `LocalVideoPlayerTheme.current.colors`, so an explicit argument still wins.
+- Icons are read inside each control, not passed as parameters, so the theme is the one place to change them.
+- `VideoPlayerIcon` implements `equals` by value (drawable or vector or painter, size, tint), so an app creating an equal theme on each recomposition doesn't restyle anything. The default play icon has an internal `offsetX` for optical centering; it isn't public API.
+- `compose.components.resources` is an `api` dependency, because `VideoPlayerIcon` takes a `DrawableResource`.
+- Default icons come from the user. Don't draw or convert icons in this repo; ask for them.
+
+## Video gestures
+
+**Where:** `videoplayer-core/src/commonMain/.../VideoGestures.kt` and the gesture layer at the end of `VideoPlayerSurface`.
+
+- The gestures are a transparent box above the video and poster, inside the surface. Core has no idea of controls, so a single tap only calls `onTap`; `VideoPlayer` passes `visibility::toggle`, and `KeepControlsWhileSeeking` turns each double-tap seek into `onInteraction()` by watching `seekFeedback`.
+- The gesture box is laid out with the `turned` layout modifier (`internal/Turned.kt`): measured with width and height swapped and placed with a rotated layer. Pointer positions then arrive in the video's frame, so seek sides and swipe directions need no mapping. It is the same node at every angle, so turning the view doesn't restart the gesture detector. The Android `TextureView` is turned with it too.
+- Gestures nothing handles stay out of the way: without an `onTap`, taps aren't claimed, and with every built-in gesture off there is no detector at all. Otherwise a parent's `clickable` around a bare surface would never fire.
+- `customGestures` is applied after the built-in `pointerInput` in the modifier chain, which makes it the inner node: in the main pass it sees each event first. The built-in detector bails out on consumed changes, which is what lets the app take a gesture over.
+- `onTap` goes through `rememberUpdatedState`, so a new lambda on each recomposition doesn't restart the pointer input.
+
+## Swipe to fullscreen
+
+**Where:** `awaitTapOrHold` and `completeSwipe` in `VideoGestures.kt`.
+
+- The allowed direction comes from the controller's state at touch-down: down in fullscreen, up when fullscreen is enabled, none otherwise. A drag in any other direction stays unconsumed, so a scrolling parent still gets it, exactly as before swipes existed.
+- A swipe is claimed at touch slop, by consuming the change, only when it is mostly vertical and in the allowed direction. Claiming later would let a scrolling parent take the drag first.
+- `completeSwipe` reads `changedToUp()` before consuming the change. `changedToUp()` ignores consumed changes, so consuming first made every swipe look like it never ended. The swipe UI tests catch this.
+- The decision uses the vertical distance at release, so moving back before letting go cancels the swipe. A second finger cancels it too.
+- The swipe has to pass touch slop before the long-press timeout; a finger held still first becomes a hold, as before.
+- In a turned view, the gesture box is turned with the video, so "down" means down for the video without any mapping.
+- `swipeFeedback` is set from the claim on and cleared in a `finally`, so it can't stay behind when the gesture is cancelled. `SwipeIndicator` eases the progress over 150 ms and keeps the last direction while fading out.
+
+## Turning the fullscreen view
+
+**Where:** `FullscreenContent` in `FullscreenVideoPlayer.kt`, `FullscreenRotation.kt`, and the platform surfaces.
+
+- Native video views don't follow Compose's graphics layers (a `SurfaceView` and a `UIKitView` both draw outside them), so the video is turned by the platform through `VideoPlayerSurface(rotationDegrees)`, which turns its gesture box too. The surface covers the whole screen with a fixed ratio equal to the screen's and `Fit`, so the gestures cover the black bars as well. The controls and feedback are a Compose box sized to the turned frame with `requiredSize` and turned with `graphicsLayer { rotationZ }`. Both use the same `degrees`, so they can't disagree.
+- Safe-drawing insets are absolute screen edges. `turnedSafeDrawing` maps them onto the turned box's edges, so the controls stay clear of the notch whichever way the view is turned.
+- The first turn is computed in `remember`, without the sensor, so entering fullscreen doesn't show one unturned frame. `AutoRotate` then waits up to 0.5 s for the first tilt reading and only applies it when the user hasn't pressed a rotate button meanwhile.
+- `AutoRotate` is keyed on the screen's shape and the video's shape, not on the tilt, so tilting the device later doesn't fight the user's buttons. The shape is kept while no video size is known, so switching items doesn't turn the view back and forth.
+- `rotation = null` forces `degrees` to 0 even when a hoisted `viewRotation` is turned.
 
 ## Kotlin and Compose toolchain
 

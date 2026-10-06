@@ -17,7 +17,7 @@ public object FullscreenStatusBar {
     private var requests = 0
     private val observers = mutableListOf<(Boolean) -> Unit>()
 
-    /** `true` while a `FullscreenHost` shows a player. */
+    /** `true` while a [FullscreenVideoPlayer] is shown. */
     public val isHidden: Boolean
         get() = requests > 0
 

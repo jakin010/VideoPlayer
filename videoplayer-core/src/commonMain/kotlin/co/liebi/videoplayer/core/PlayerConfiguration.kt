@@ -14,6 +14,12 @@ public data class PlayerConfiguration(
     val buffering: BufferingConfig = BufferingConfig(),
     val retry: RetryConfig = RetryConfig(),
     val lifecycle: LifecycleConfig = LifecycleConfig(),
+    /**
+     * The app shows this player fullscreen when asked, for example with `FullscreenVideoPlayer` (§12).
+     * Turns on [PlayerController.enterFullscreen], the fullscreen button and swiping up to enter. Off by
+     * default, so no player offers a fullscreen that nothing shows.
+     */
+    val fullscreenEnabled: Boolean = false,
 )
 
 @Immutable

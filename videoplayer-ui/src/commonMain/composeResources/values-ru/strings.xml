@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">Включить звук</string>
     <string name="videoplayer_enter_fullscreen">Во весь экран</string>
     <string name="videoplayer_exit_fullscreen">Выйти из полноэкранного режима</string>
+    <string name="videoplayer_rotate_left">Повернуть влево</string>
+    <string name="videoplayer_rotate_right">Повернуть вправо</string>
     <string name="videoplayer_retry">Повторить</string>
     <string name="videoplayer_error_generic">Не удалось воспроизвести видео</string>
     <string name="videoplayer_position">Позиция видео</string>

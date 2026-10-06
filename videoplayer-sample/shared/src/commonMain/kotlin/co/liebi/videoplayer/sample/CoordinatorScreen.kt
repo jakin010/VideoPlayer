@@ -51,6 +51,7 @@ import co.liebi.videoplayer.core.PlayerCoordinator
 import co.liebi.videoplayer.core.PlayerEvent
 import co.liebi.videoplayer.core.PlayerLifecycle
 import co.liebi.videoplayer.core.PlayerState
+import co.liebi.videoplayer.core.VideoGestures
 import co.liebi.videoplayer.core.rememberPlayerController
 import co.liebi.videoplayer.ui.VideoPlayer
 import kotlinx.coroutines.flow.combine
@@ -58,10 +59,11 @@ import kotlinx.coroutines.flow.flowOf
 
 private val MaxPlayerOptions = listOf(1, 2, 3, 4, 6)
 
-/** Feed players start muted and paused; the user or autoplay starts them. */
+/** Feed players start muted and paused; the user or autoplay starts them. The app shows them fullscreen. */
 private val FeedConfiguration = PlayerConfiguration(
     playback = PlaybackConfig(initialMuted = true, playOnItemSelected = false),
     lifecycle = LifecycleConfig(keepPreparedItems = 0),
+    fullscreenEnabled = true,
 )
 
 /** Owns the coordinator. Changing its config replaces it, releasing every player of the old one. */
@@ -182,11 +184,12 @@ private fun PlayerCounts(coordinator: PlayerCoordinator, modifier: Modifier = Mo
 @Composable
 private fun FeedVideo(item: MediaItem, coordinator: PlayerCoordinator, autoplay: Boolean, isMostVisible: Boolean) {
     // Owned by the coordinator: it outlives this list item and is released after the retention period.
-    val controller = rememberPlayerController(key = item.id, coordinator = coordinator, configuration = FeedConfiguration)
-    LaunchedEffect(controller) {
-        controller.setItems(listOf(item))
-        controller.selectItem(item.id)
-    }
+    val controller = rememberPlayerController(
+        key = item.id,
+        coordinator = coordinator,
+        configuration = FeedConfiguration,
+        items = listOf(item),
+    )
     LaunchedEffect(controller, autoplay, isMostVisible) {
         if (!autoplay) return@LaunchedEffect
         if (isMostVisible) controller.play() else controller.pause()
@@ -205,6 +208,8 @@ private fun FeedVideo(item: MediaItem, coordinator: PlayerCoordinator, autoplay:
             controller = controller,
             modifier = Modifier.background(Color.Black),
             poster = { Poster(item.title) },
+            // In a feed, swiping up on a video scrolls the feed; the fullscreen button still works.
+            gestures = VideoGestures(swipeToFullscreen = false),
         )
         Text(
             state.summary(controller.id),

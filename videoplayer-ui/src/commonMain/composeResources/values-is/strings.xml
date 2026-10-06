@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">Kveikja á hljóði</string>
     <string name="videoplayer_enter_fullscreen">Allur skjárinn</string>
     <string name="videoplayer_exit_fullscreen">Loka öllum skjánum</string>
+    <string name="videoplayer_rotate_left">Snúa til vinstri</string>
+    <string name="videoplayer_rotate_right">Snúa til hægri</string>
     <string name="videoplayer_retry">Reyna aftur</string>
     <string name="videoplayer_error_generic">Ekki tókst að spila myndskeiðið</string>
     <string name="videoplayer_position">Staðsetning myndskeiðs</string>

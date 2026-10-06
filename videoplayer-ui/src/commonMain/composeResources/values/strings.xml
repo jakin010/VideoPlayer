@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">Unmute</string>
     <string name="videoplayer_enter_fullscreen">Fullscreen</string>
     <string name="videoplayer_exit_fullscreen">Exit fullscreen</string>
+    <string name="videoplayer_rotate_left">Rotate left</string>
+    <string name="videoplayer_rotate_right">Rotate right</string>
     <string name="videoplayer_retry">Retry</string>
     <string name="videoplayer_error_generic">Unable to play video</string>
     <string name="videoplayer_position">Video position</string>

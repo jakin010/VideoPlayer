@@ -25,6 +25,8 @@ The emulator's goldfish H.264 decoders claim adaptive playback but corrupt frame
 
 Media3's `PlayerSurface` with a `SurfaceView` (cheapest on battery). A `SurfaceView` keeps its last frame until the next player draws, so `keepPreviousFrame` needs no work on Android. When a kept item becomes current again, ExoPlayer draws a fresh frame onto the surface even while paused, which reports the first frame again.
 
+A turned surface (`rotationDegrees` other than 0, the turned fullscreen view) uses a `TextureView` instead. The system composites a `SurfaceView` outside the view hierarchy, so Compose's graphics layers can't rotate it. The `TextureView` gets the same `turned` layout as the gesture layer: width and height swapped, placed with a rotated layer around the center. Turning to or from 0 switches the view type, which hands the player a new surface without preparing again.
+
 ### Application context
 
 **Where:** `Platform.android.kt`
@@ -41,6 +43,12 @@ Media3's `PlayerSurface` with a `SurfaceView` (cheapest on battery). A `SurfaceV
 - If focus is denied (for example during a call), audible players pause with `Interruption`.
 - `ACTION_AUDIO_BECOMING_NOISY` (headphones disconnected) is registered only while something audible plays.
 - Background detection uses `ProcessLifecycleOwner`, which ignores configuration changes.
+
+### Device tilt
+
+**Where:** `videoplayer-ui/src/androidMain/.../DeviceTilt.android.kt`
+
+Auto-rotate reads how the device is held from `OrientationEventListener`, which uses the accelerometer and keeps reporting while rotation is locked. No permission is needed. The listener counts clockwise from the natural orientation, and the result is taken relative to `Display.rotation`, so it means the same thing whether the screen has rotated or not. Only one thing is used: whether the device's top points right. `ORIENTATION_UNKNOWN` (lying flat) and devices without a sensor count as not turned.
 
 ### Errors
 
@@ -80,6 +88,7 @@ Cookies use the public `AVURLAssetHTTPCookiesKey`. Custom headers have no public
 - When the layer changes while `keepPrevious` is set, the old layer stays underneath, still showing its last frame, until the new layer has one (a new layer is transparent until then).
 - The host view's background is black: it is what letterbox bars of a fitted video show. A clear background showed thin white lines around the video in fullscreen.
 - `UIKitInteropProperties(isInteractive = false)` keeps the view out of touch handling and lets Compose content draw above it.
+- A turned surface sets the layer's affine transform to the rotation, its bounds to the turned frame (width and height swapped) and its position to the view's center. The frame of a transformed layer is undefined, so it is never set while turned. The same layer moves between surfaces, so every surface sets the transform each time it places the layer, the identity when not turned; otherwise the inline surface would keep the fullscreen view's turn.
 - `AVPlayerLayer.readyForDisplay` reports the first frame. When a kept item becomes current again, its layer already holds the frame, so unparking reports it again immediately.
 
 ### Audio session
@@ -90,6 +99,12 @@ Cookies use the public `AVURLAssetHTTPCookiesKey`. Custom headers have no public
 - Deactivating the session while a muted player still runs audio output fails; that is harmless and ignored.
 - An interruption deactivates the session, so the cached category is reset and applied again afterwards.
 - Interruptions stop every player, muted ones included. Late interruption notifications for an app that was suspended are ignored; its players were already paused for the background.
+
+### Device tilt
+
+**Where:** `videoplayer-ui/src/iosMain/.../DeviceTilt.ios.kt`
+
+`UIDevice.orientation` stops changing while the user has locked rotation, so auto-rotate reads gravity from `CMMotionManager`'s accelerometer instead, five times a second on the main queue, only while a fullscreen player with auto-rotate is shown. Raw accelerometer data needs no permission or `Info.plist` entry. The result is taken relative to the window scene's `interfaceOrientation`. A device lying flat counts as not turned.
 
 ### Errors
 

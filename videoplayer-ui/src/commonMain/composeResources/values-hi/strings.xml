@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">अनम्यूट करें</string>
     <string name="videoplayer_enter_fullscreen">फ़ुल स्क्रीन</string>
     <string name="videoplayer_exit_fullscreen">फ़ुल स्क्रीन से बाहर निकलें</string>
+    <string name="videoplayer_rotate_left">बाईं ओर घुमाएं</string>
+    <string name="videoplayer_rotate_right">दाईं ओर घुमाएं</string>
     <string name="videoplayer_retry">फिर से कोशिश करें</string>
     <string name="videoplayer_error_generic">वीडियो नहीं चलाया जा सका</string>
     <string name="videoplayer_position">वीडियो की स्थिति</string>

@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">Attiva audio</string>
     <string name="videoplayer_enter_fullscreen">Schermo intero</string>
     <string name="videoplayer_exit_fullscreen">Esci da schermo intero</string>
+    <string name="videoplayer_rotate_left">Ruota a sinistra</string>
+    <string name="videoplayer_rotate_right">Ruota a destra</string>
     <string name="videoplayer_retry">Riprova</string>
     <string name="videoplayer_error_generic">Impossibile riprodurre il video</string>
     <string name="videoplayer_position">Posizione del video</string>

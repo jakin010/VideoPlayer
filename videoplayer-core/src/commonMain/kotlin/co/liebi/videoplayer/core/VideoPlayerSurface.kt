@@ -11,6 +11,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -19,14 +20,15 @@ import androidx.compose.runtime.collectAsState
 import co.liebi.videoplayer.core.internal.DefaultPlayerController
 import co.liebi.videoplayer.core.internal.KeepScreenAwake
 import co.liebi.videoplayer.core.internal.PlatformVideoSurface
+import co.liebi.videoplayer.core.internal.turned
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Draws the controller's video. It fills the width it is given and takes its height from [aspectRatio].
- * It handles no input, so gestures and controls can be layered on top.
+ * Draws the controller's video and handles the video gestures (§11). It fills the width it is given and takes
+ * its height from [aspectRatio]. Controls can be layered on top; touches on them don't reach the gestures.
  *
  * A controller renders to one surface at a time: the most recently attached one. Other surfaces show [poster].
  * When no surface is attached for about a second, the controller suspends and frees its native player.
@@ -36,6 +38,15 @@ import kotlin.time.Duration.Companion.seconds
  * @param posterDelay Once video has been showing (for example when switching items), the poster only
  *   appears if the next first frame takes longer than this. Until then the last frame stays on screen,
  *   so quick switches go straight from video to video.
+ * @param rotationDegrees Turns the video clockwise inside the area: 0, 90, 180 or 270. With
+ *   [VideoAspectRatio.Native], the area takes the turned video's shape. The poster and the area are not turned;
+ *   the gestures are, so a double tap on the video's right side seeks forward however it is turned.
+ * @param gestures The built-in gestures, each of which can be turned off; [VideoGestures.None] turns them all off.
+ * @param gestureState What the gestures are doing, for feedback such as a seek indicator.
+ * @param onTap Called for single taps, unless [VideoGestures.tap] is off. Without it, single taps are left alone.
+ * @param customGestures The app's own gestures, for example
+ *   `Modifier.pointerInput(Unit) { detectHorizontalDragGestures { … } }`. They see touches before the built-in
+ *   gestures, which ignore any touch they consume, and get positions in the video's frame when it is turned.
  */
 @Composable
 public fun VideoPlayerSurface(
@@ -45,12 +56,19 @@ public fun VideoPlayerSurface(
     contentScale: VideoContentScale = VideoContentScale.Crop,
     poster: @Composable () -> Unit = {},
     posterDelay: Duration = DefaultPosterDelay,
+    rotationDegrees: Int = 0,
+    gestures: VideoGestures = VideoGestures(),
+    gestureState: VideoGestureState = rememberVideoGestureState(),
+    onTap: (() -> Unit)? = null,
+    customGestures: Modifier = Modifier,
 ) {
+    require(rotationDegrees % 90 == 0) { "rotationDegrees must be a multiple of 90" }
+    val rotation = rotationDegrees.mod(360)
     val state by controller.state.collectAsState()
     val videoSize = rememberStableVideoSize(state.videoSize)
     val ratio = when (aspectRatio) {
         is VideoAspectRatio.Fixed -> aspectRatio.ratio
-        VideoAspectRatio.Native -> videoSize?.ratio ?: DefaultRatio
+        VideoAspectRatio.Native -> (videoSize?.ratio ?: DefaultRatio).let { if (rotation % 180 != 0) 1f / it else it }
     }
     Box(
         modifier = modifier.fillMaxWidth().aspectRatio(ratio).clipToBounds(),
@@ -65,6 +83,7 @@ public fun VideoPlayerSurface(
                 videoSize = videoSize,
                 contentScale = contentScale,
                 keepPreviousFrame = !posterVisible.value && !state.isFirstFrameRendered,
+                rotation = rotation,
             )
         } ?: false
         val videoVisible = isRendering && state.isFirstFrameRendered
@@ -80,6 +99,23 @@ public fun VideoPlayerSurface(
         if (posterVisible.value) {
             Box(Modifier.matchParentSize()) { poster() }
         }
+        // Above the poster, turned with the video, so positions are in the video's frame. Without anything to
+        // handle, the built-in gestures stay out of the way, so touches reach the app's own handlers.
+        val currentOnTap by rememberUpdatedState(onTap)
+        val active = gestures.copy(tap = gestures.tap && onTap != null)
+        Box(
+            Modifier
+                .matchParentSize()
+                .turned(rotation)
+                .then(
+                    if (active == VideoGestures.None) {
+                        Modifier
+                    } else {
+                        Modifier.videoGestures(controller, active, gestureState) { currentOnTap?.invoke() }
+                    },
+                )
+                .then(customGestures),
+        )
     }
 }
 
@@ -90,6 +126,7 @@ private fun AttachedVideo(
     videoSize: IntSize?,
     contentScale: VideoContentScale,
     keepPreviousFrame: Boolean,
+    rotation: Int,
 ): Boolean {
     val token = remember(controller) { Any() }
     DisposableEffect(controller, token) {
@@ -105,6 +142,7 @@ private fun AttachedVideo(
         videoSize = videoSize,
         contentScale = contentScale,
         keepPreviousFrame = keepPreviousFrame,
+        rotation = rotation,
         modifier = Modifier.fillMaxSize(),
     )
     return isActive

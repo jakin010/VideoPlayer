@@ -47,6 +47,12 @@ controller.setItems(listOf(intro, episode1, episode2))
 controller.selectItem("episode1")
 ```
 
+Or when creating the controller, which does the same:
+
+```kotlin
+val controller = PlayerController(items = listOf(intro, episode1, episode2), selectedItemId = "episode1")
+```
+
 - `setItems` replaces the list. Positions of items that remain are kept. If the current item is removed, the player stops and goes to `Idle`. Two items with the same ID throw `IllegalArgumentException`.
 - If the current item's source changed in the new list, it re-prepares at its current position.
 - `selectItem(id)` records the current position, stops the current item and loads the new one. Selecting the current item does nothing.

@@ -5,7 +5,7 @@
 | Artifact | Use it for |
 |---|---|
 | `co.liebi.videoplayer:videoplayer-core` | The player: `PlayerController`, state, events, configuration, `VideoPlayerSurface` and the coordinator. Enough on its own if you build every control yourself. |
-| `co.liebi.videoplayer:videoplayer-ui` | Ready-made controls, `VideoPlayer`, gestures and `FullscreenHost`. Depends on `videoplayer-core` and exposes it. |
+| `co.liebi.videoplayer:videoplayer-ui` | Ready-made controls, `VideoPlayer`, `FullscreenVideoPlayer` and the theme. Depends on `videoplayer-core` and exposes it. |
 | `co.liebi.videoplayer:videoplayer-test` | `FakePlayerController` for tests and `@Preview`. Add it to test source sets only. |
 
 The repository is private and not published to a remote Maven repository yet. Publish locally with `./gradlew publishToMavenLocal`, then depend on the version in `gradle.properties` (currently `0.1.0-SNAPSHOT`):
@@ -44,12 +44,10 @@ A controller can outlive any composable. Keep it somewhere with a clear lifetime
 
 ```kotlin
 class VideoViewModel : ViewModel() {
-    val controller = PlayerController()
-
-    init {
-        controller.setItems(listOf(MediaItem(id = "intro", source = MediaSource.Url("https://example.com/intro.m3u8"))))
-        controller.selectItem("intro") // starts playing once enough is buffered
-    }
+    // The first item is selected right away and starts playing once enough is buffered.
+    val controller = PlayerController(
+        items = listOf(MediaItem(id = "intro", source = MediaSource.Url("https://example.com/intro.m3u8"))),
+    )
 
     override fun onCleared() = controller.release()
 }
@@ -72,17 +70,21 @@ Call controller methods on the main thread only. State and events are delivered 
 
 ## Fullscreen
 
-Place one `FullscreenHost` at the root of your UI, after the app content. Without it, the fullscreen button stays hidden:
+Turn it on for the player with `PlayerConfiguration(fullscreenEnabled = true)`; until then the fullscreen button stays hidden. The library then switches the player's presentation, and your app shows `FullscreenVideoPlayer` while it is fullscreen:
 
 ```kotlin
 Box(Modifier.fillMaxSize()) {
-    AppContent()
-    FullscreenHost()
+    ScreenContent() // with VideoPlayer(controller)
+    val state by controller.state.collectAsState()
+    if (state.presentation == Presentation.Fullscreen) FullscreenVideoPlayer(controller)
 }
 ```
+
+See [Fullscreen](fullscreen.md) for other places to show it, such as a navigation destination.
 
 ## Next steps
 
 - Feeds or several players on one screen: [Feeds and the coordinator](feeds-and-coordinator.md).
+- Your own colors and icons, switchable at runtime: [the theme](ui-components.md#theme).
 - Your own controls: [UI components](ui-components.md).
 - Reacting to playback (analytics, autoplay logic): [State and events](state-and-events.md).

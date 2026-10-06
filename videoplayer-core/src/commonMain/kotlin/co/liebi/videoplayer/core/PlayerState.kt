@@ -41,7 +41,7 @@ public data class PlayerState(
     /** The automatic retry in progress, or 0 when not retrying. */
     val retryAttempt: Int = 0,
     val presentation: Presentation = Presentation.Inline,
-    /** A `FullscreenHost` is placed for this player's coordinator, so [PlayerController.enterFullscreen] works. */
+    /** [PlayerConfiguration.fullscreenEnabled] is on, so [PlayerController.enterFullscreen] works. */
     val isFullscreenAvailable: Boolean = false,
     /** A call, alarm or another app's transient audio focus is interrupting playback (§13). */
     val isAudioInterrupted: Boolean = false,
@@ -111,7 +111,7 @@ public enum class Presentation {
     /** Shown by the app's own surfaces. */
     Inline,
 
-    /** Shown by the coordinator's `FullscreenHost`. */
+    /** Shown fullscreen by the app, for example with `FullscreenVideoPlayer`. */
     Fullscreen,
 }
 

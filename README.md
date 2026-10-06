@@ -11,9 +11,10 @@ The [documentation](docs/README.md) explains the API, how to build with it, and 
 
 ```kotlin
 // App-owned controller, e.g. in a ViewModel. Call release() in onCleared().
-val controller = PlayerController()
-controller.setItems(listOf(MediaItem(id = "intro", source = MediaSource.Url("https://example.com/intro.m3u8"))))
-controller.selectItem("intro")
+// Passing items selects the first one right away.
+val controller = PlayerController(
+    items = listOf(MediaItem(id = "intro", source = MediaSource.Url("https://example.com/intro.m3u8"))),
+)
 
 // In composition: the video with controls, auto-hide and gestures wired
 VideoPlayer(controller, aspectRatio = VideoAspectRatio.Ratio16x9, poster = { MyPoster() })
@@ -26,22 +27,21 @@ val coordinator = remember { PlayerCoordinator(CoordinatorConfig(singleActivePla
 
 LazyColumn {
     items(videos, key = { it.id }) { video ->
-        val controller = rememberPlayerController(key = video.id, coordinator = coordinator)
-        LaunchedEffect(controller) {
-            controller.setItems(listOf(video))
-            controller.selectItem(video.id)
-        }
+        val controller = rememberPlayerController(key = video.id, coordinator = coordinator, items = listOf(video))
         VideoPlayer(controller)
     }
 }
 ```
 
-Fullscreen needs one `FullscreenHost` per coordinator at the root of the UI, above the app content and outside any system bar padding. Until a host is placed, `enterFullscreen()` does nothing and the fullscreen button stays hidden:
+The library triggers fullscreen and the app shows it. Players that offer it set `fullscreenEnabled`; the app shows `FullscreenVideoPlayer` while the player is fullscreen, wherever suits it (above the screen, in a dialog, as its own route):
 
 ```kotlin
+val controller = PlayerController(PlayerConfiguration(fullscreenEnabled = true), items = listOf(video))
+
 Box(Modifier.fillMaxSize()) {
-    AppContent()
-    FullscreenHost() // PlayerCoordinator.Default; pass a coordinator for players that use another one
+    ScreenContent() // with VideoPlayer(controller)
+    val state by controller.state.collectAsState()
+    if (state.presentation == Presentation.Fullscreen) FullscreenVideoPlayer(controller)
 }
 ```
 
@@ -56,9 +56,11 @@ On iOS, Compose can't hide the status bar itself. The view hosting the Compose U
 | §15–§17 Events, configuration, `FakePlayerController` | Done |
 | Instant switch-back: recently played items stay prepared in memory (`LifecycleConfig.keepPreparedItems`, default 1) | Done |
 | §11 Default controls: `PlayerControls`, `PlayPauseButton`, `MuteButton`, `PlayerScrubber` | Done. UI-tested on iOS |
-| §11 Auto-hide (`ControlsVisibility`), gestures (`VideoGestures`: tap, double-tap seek, hold to pause), `SeekIndicator`, `LoadingIndicator`, `ErrorPanel`, `VideoPlayer` | Done. UI-tested on iOS |
+| §11 Auto-hide (`ControlsVisibility`), gestures on `VideoPlayerSurface` (`VideoGestures`: tap, double-tap seek, hold to pause, swipe to enter and leave fullscreen, each switchable, plus the app's own gestures), `SeekIndicator`, `LoadingIndicator`, `ErrorPanel`, `VideoPlayer` | Done. UI-tested on iOS |
 | §14 `PlayerCoordinator`: registry, merged events, single active player, native player cap, owned controllers (`rememberPlayerController`), shared iOS audio session; keep screen awake while playing | Done, unit-tested in common code |
-| §12 Fullscreen: `FullscreenHost`, `FullscreenButton`, `enterFullscreen()` / `exitFullscreen()`, Back, custom controls slot | Done. Unit- and UI-tested |
+| §12 Fullscreen, changed from the spec: the app shows `FullscreenVideoPlayer` while a player is fullscreen instead of a global `FullscreenHost`; `fullscreenEnabled`, `FullscreenControls`, `FullscreenButton`, `enterFullscreen()` / `exitFullscreen()`, Back, custom controls slot | Done. Unit- and UI-tested |
+| Turning the fullscreen view: rotate buttons and auto-rotate to the video's shape and the device's tilt (`FullscreenRotation`), working under rotation lock | Done. Unit- and UI-tested, checked by hand on the Android emulator and iOS simulator |
+| `VideoPlayerTheme`: colors and icons of the whole player UI, switchable at runtime (`ProvideVideoPlayerTheme`); swipe feedback (`SwipeIndicator`) | Done. Unit- and UI-tested, checked by hand on the Android emulator |
 | §13 Audio focus (Android), interruptions, headphones disconnecting, pausing in the background with `resumeAfterBackground` | Done, unit-tested in common code |
 | §17 Parity suite and leak checks on the real engines (sample's Checks tab) | Done. Passing on the Android emulator and iOS simulator |
 
@@ -78,7 +80,7 @@ Known platform behavior:
 | Module | Artifact | Purpose |
 |---|---|---|
 | [`videoplayer-core`](videoplayer-core) | `co.liebi.videoplayer:videoplayer-core` | Public API (`PlayerController`, state, events, configuration), `VideoPlayerSurface`, and the platform playback engines (Media3 / AVFoundation). The common state machine is in `internal/DefaultPlayerController.kt` |
-| [`videoplayer-ui`](videoplayer-ui) | `co.liebi.videoplayer:videoplayer-ui` | Default controls, `VideoPlayer`, gestures, fullscreen host and localizable strings. Optional: apps with fully custom controls only need `videoplayer-core` |
+| [`videoplayer-ui`](videoplayer-ui) | `co.liebi.videoplayer:videoplayer-ui` | Default controls, `VideoPlayer`, `FullscreenVideoPlayer`, the theme and localizable strings. Optional: apps with fully custom controls only need `videoplayer-core` |
 | [`videoplayer-test`](videoplayer-test) | `co.liebi.videoplayer:videoplayer-test` | Test doubles (`FakePlayerController`) for app tests and `@Preview` |
 | [`videoplayer-sample`](videoplayer-sample) | not published | Android and iOS test app. The Player tab has HLS, MP4 and a broken URL with live state and an event log. The Coordinator tab is a feed of five streams with single-active, cap and autoplay switches and the merged event log. The Checks tab runs the parity suite and the leak checks. All players start muted |
 | [`build-logic`](build-logic) | not published | Gradle convention plugins |

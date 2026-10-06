@@ -46,7 +46,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 public fun LoadingIndicator(
     modifier: Modifier = Modifier,
-    colors: PlayerControlsColors = PlayerControlsDefaults.colors(),
+    colors: PlayerControlsColors = LocalVideoPlayerTheme.current.colors,
 ) {
     val label = stringResource(Res.string.videoplayer_loading)
     val rotation = rememberInfiniteTransition().animateFloat(
@@ -83,7 +83,7 @@ public fun LoadingIndicator(
 public fun ErrorPanel(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
-    colors: PlayerControlsColors = PlayerControlsDefaults.colors(),
+    colors: PlayerControlsColors = LocalVideoPlayerTheme.current.colors,
 ) {
     val textStyle = TextStyle(color = colors.contentColor, fontSize = 14.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
     Column(

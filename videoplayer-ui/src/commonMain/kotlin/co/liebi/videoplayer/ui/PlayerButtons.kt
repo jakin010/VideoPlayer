@@ -1,6 +1,5 @@
 package co.liebi.videoplayer.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -9,7 +8,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
@@ -20,36 +18,27 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.node.DpTouchBoundsExpansion
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import co.liebi.videoplayer.core.PlaybackStatus
 import co.liebi.videoplayer.core.PlayerController
 import co.liebi.videoplayer.core.Presentation
 import co.liebi.videoplayer.ui.generated.resources.Res
-import co.liebi.videoplayer.ui.generated.resources.ic_fullscreen
-import co.liebi.videoplayer.ui.generated.resources.ic_fullscreen_exit
-import co.liebi.videoplayer.ui.generated.resources.ic_pause
-import co.liebi.videoplayer.ui.generated.resources.ic_play
-import co.liebi.videoplayer.ui.generated.resources.ic_replay
-import co.liebi.videoplayer.ui.generated.resources.ic_sound_off
-import co.liebi.videoplayer.ui.generated.resources.ic_sound_on
 import co.liebi.videoplayer.ui.generated.resources.videoplayer_enter_fullscreen
 import co.liebi.videoplayer.ui.generated.resources.videoplayer_exit_fullscreen
 import co.liebi.videoplayer.ui.generated.resources.videoplayer_mute
 import co.liebi.videoplayer.ui.generated.resources.videoplayer_pause
 import co.liebi.videoplayer.ui.generated.resources.videoplayer_play
 import co.liebi.videoplayer.ui.generated.resources.videoplayer_replay
+import co.liebi.videoplayer.ui.generated.resources.videoplayer_rotate_left
+import co.liebi.videoplayer.ui.generated.resources.videoplayer_rotate_right
 import co.liebi.videoplayer.ui.generated.resources.videoplayer_unmute
 import co.liebi.videoplayer.ui.internal.expandedPointerInput
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -61,7 +50,7 @@ public fun PlayPauseButton(
     controller: PlayerController,
     modifier: Modifier = Modifier,
     visibility: ControlsVisibility? = null,
-    colors: PlayerControlsColors = PlayerControlsDefaults.colors(),
+    colors: PlayerControlsColors = LocalVideoPlayerTheme.current.colors,
 ) {
     val state by controller.state.collectAsState()
     val mode = when {
@@ -84,12 +73,15 @@ public fun PlayPauseButton(
         colors = colors,
         modifier = modifier,
     ) {
-        when (mode) {
-            // Nudged right so the triangle looks centered in the circle.
-            PlayPauseMode.Play -> ControlIcon(Res.drawable.ic_play, 10.dp, 10.dp, colors, Modifier.offset(x = 0.65.dp))
-            PlayPauseMode.Pause -> ControlIcon(Res.drawable.ic_pause, 9.25.dp, 9.25.dp, colors)
-            PlayPauseMode.Replay -> ControlIcon(Res.drawable.ic_replay, 11.5.dp, 11.5.dp, colors)
-        }
+        val icons = LocalVideoPlayerTheme.current.icons
+        PlayerIcon(
+            icon = when (mode) {
+                PlayPauseMode.Play -> icons.play
+                PlayPauseMode.Pause -> icons.pause
+                PlayPauseMode.Replay -> icons.replay
+            },
+            color = colors.contentColor,
+        )
     }
 }
 
@@ -101,7 +93,7 @@ public fun MuteButton(
     controller: PlayerController,
     modifier: Modifier = Modifier,
     visibility: ControlsVisibility? = null,
-    colors: PlayerControlsColors = PlayerControlsDefaults.colors(),
+    colors: PlayerControlsColors = LocalVideoPlayerTheme.current.colors,
 ) {
     val state by controller.state.collectAsState()
     ControlButton(
@@ -113,24 +105,21 @@ public fun MuteButton(
         colors = colors,
         modifier = modifier,
     ) {
-        if (state.isMuted) {
-            ControlIcon(Res.drawable.ic_sound_off, 11.5.dp, 10.5.dp, colors)
-        } else {
-            ControlIcon(Res.drawable.ic_sound_on, 13.dp, 10.5.dp, colors)
-        }
+        val icons = LocalVideoPlayerTheme.current.icons
+        PlayerIcon(if (state.isMuted) icons.soundOff else icons.soundOn, colors.contentColor)
     }
 }
 
 /**
- * Enters fullscreen, or exits it while fullscreen (§12). Hidden when no `FullscreenHost` is placed for the
- * player's coordinator, because entering would do nothing.
+ * Enters fullscreen, or exits it while fullscreen (§12). Hidden unless `PlayerConfiguration.fullscreenEnabled`
+ * is on for the player, because entering would do nothing.
  */
 @Composable
 public fun FullscreenButton(
     controller: PlayerController,
     modifier: Modifier = Modifier,
     visibility: ControlsVisibility? = null,
-    colors: PlayerControlsColors = PlayerControlsDefaults.colors(),
+    colors: PlayerControlsColors = LocalVideoPlayerTheme.current.colors,
 ) {
     val state by controller.state.collectAsState()
     val isFullscreen = state.presentation == Presentation.Fullscreen
@@ -146,7 +135,55 @@ public fun FullscreenButton(
         colors = colors,
         modifier = modifier,
     ) {
-        ControlIcon(if (isFullscreen) Res.drawable.ic_fullscreen_exit else Res.drawable.ic_fullscreen, 11.dp, 11.dp, colors)
+        val icons = LocalVideoPlayerTheme.current.icons
+        PlayerIcon(if (isFullscreen) icons.exitFullscreen else icons.enterFullscreen, colors.contentColor)
+    }
+}
+
+/**
+ * Turns the fullscreen view 90 degrees counterclockwise, for users who locked their screen's rotation.
+ * The default fullscreen controls place it next to the exit-fullscreen button.
+ */
+@Composable
+public fun RotateLeftButton(
+    rotation: FullscreenViewRotation,
+    modifier: Modifier = Modifier,
+    visibility: ControlsVisibility? = null,
+    colors: PlayerControlsColors = LocalVideoPlayerTheme.current.colors,
+) {
+    RotateButton(clockwise = false, rotation, modifier, visibility, colors)
+}
+
+/** Turns the fullscreen view 90 degrees clockwise. See [RotateLeftButton]. */
+@Composable
+public fun RotateRightButton(
+    rotation: FullscreenViewRotation,
+    modifier: Modifier = Modifier,
+    visibility: ControlsVisibility? = null,
+    colors: PlayerControlsColors = LocalVideoPlayerTheme.current.colors,
+) {
+    RotateButton(clockwise = true, rotation, modifier, visibility, colors)
+}
+
+@Composable
+private fun RotateButton(
+    clockwise: Boolean,
+    rotation: FullscreenViewRotation,
+    modifier: Modifier,
+    visibility: ControlsVisibility?,
+    colors: PlayerControlsColors,
+) {
+    val icons = LocalVideoPlayerTheme.current.icons
+    ControlButton(
+        onClick = {
+            visibility?.onInteraction()
+            if (clockwise) rotation.rotateRight() else rotation.rotateLeft()
+        },
+        contentDescription = stringResource(if (clockwise) Res.string.videoplayer_rotate_right else Res.string.videoplayer_rotate_left),
+        colors = colors,
+        modifier = modifier,
+    ) {
+        PlayerIcon(if (clockwise) icons.rotateRight else icons.rotateLeft, colors.contentColor)
     }
 }
 
@@ -202,20 +239,4 @@ internal fun ControlButton(
         )
         content()
     }
-}
-
-@Composable
-private fun ControlIcon(
-    resource: DrawableResource,
-    width: Dp,
-    height: Dp,
-    colors: PlayerControlsColors,
-    modifier: Modifier = Modifier,
-) {
-    Image(
-        painter = painterResource(resource),
-        contentDescription = null,
-        modifier = modifier.size(width, height),
-        colorFilter = ColorFilter.tint(colors.contentColor),
-    )
 }

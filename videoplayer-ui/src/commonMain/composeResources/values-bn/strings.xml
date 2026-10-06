@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">আনমিউট করুন</string>
     <string name="videoplayer_enter_fullscreen">পূর্ণ স্ক্রিন</string>
     <string name="videoplayer_exit_fullscreen">পূর্ণ স্ক্রিন থেকে বেরিয়ে আসুন</string>
+    <string name="videoplayer_rotate_left">বাঁ দিকে ঘোরান</string>
+    <string name="videoplayer_rotate_right">ডান দিকে ঘোরান</string>
     <string name="videoplayer_retry">আবার চেষ্টা করুন</string>
     <string name="videoplayer_error_generic">ভিডিও চালানো যাচ্ছে না</string>
     <string name="videoplayer_position">ভিডিওর অবস্থান</string>

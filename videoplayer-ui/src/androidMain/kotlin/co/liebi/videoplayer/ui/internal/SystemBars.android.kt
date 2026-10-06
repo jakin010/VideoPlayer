@@ -6,6 +6,7 @@ import android.content.ContextWrapper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -14,7 +15,9 @@ import androidx.core.view.WindowInsetsControllerCompat
 internal actual fun HideSystemBars() {
     val view = LocalView.current
     DisposableEffect(view) {
-        val window = view.context.findActivity()?.window ?: return@DisposableEffect onDispose {}
+        // In a dialog, the bars belong to the dialog's own window.
+        val window = (view.parent as? DialogWindowProvider)?.window ?: view.context.findActivity()?.window
+            ?: return@DisposableEffect onDispose {}
         val insets = WindowCompat.getInsetsController(window, view)
         val previousBehavior = insets.systemBarsBehavior
         // A swipe from the edge shows the bars briefly without leaving fullscreen.

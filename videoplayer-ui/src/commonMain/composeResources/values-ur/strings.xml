@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">آواز بحال کریں</string>
     <string name="videoplayer_enter_fullscreen">پوری اسکرین</string>
     <string name="videoplayer_exit_fullscreen">پوری اسکرین سے باہر نکلیں</string>
+    <string name="videoplayer_rotate_left">بائیں گھمائیں</string>
+    <string name="videoplayer_rotate_right">دائیں گھمائیں</string>
     <string name="videoplayer_retry">دوبارہ کوشش کریں</string>
     <string name="videoplayer_error_generic">ویڈیو نہیں چلائی جا سکی</string>
     <string name="videoplayer_position">ویڈیو کی پوزیشن</string>

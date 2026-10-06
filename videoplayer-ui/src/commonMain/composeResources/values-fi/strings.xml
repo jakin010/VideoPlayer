@@ -6,6 +6,8 @@
     <string name="videoplayer_unmute">Poista mykistys</string>
     <string name="videoplayer_enter_fullscreen">Koko näyttö</string>
     <string name="videoplayer_exit_fullscreen">Poistu koko näytöstä</string>
+    <string name="videoplayer_rotate_left">Kierrä vasemmalle</string>
+    <string name="videoplayer_rotate_right">Kierrä oikealle</string>
     <string name="videoplayer_retry">Yritä uudelleen</string>
     <string name="videoplayer_error_generic">Videota ei voi toistaa</string>
     <string name="videoplayer_position">Videon kohta</string>

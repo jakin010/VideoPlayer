@@ -56,13 +56,9 @@ private val Speeds = listOf(1f, 1.5f, 2f, 0.5f)
 /** App-owned controller: it survives Android configuration changes and is released with the ViewModel. */
 class PlayerViewModel : ViewModel() {
     val controller: PlayerController = PlayerController(
-        PlayerConfiguration(playback = PlaybackConfig(initialMuted = true)),
+        configuration = PlayerConfiguration(playback = PlaybackConfig(initialMuted = true), fullscreenEnabled = true),
+        items = SampleItems,
     )
-
-    init {
-        controller.setItems(SampleItems)
-        controller.selectItem(SampleItems.first().id)
-    }
 
     override fun onCleared() {
         controller.release()
@@ -70,7 +66,7 @@ class PlayerViewModel : ViewModel() {
 }
 
 @Composable
-fun PlayerScreen(controller: PlayerController) {
+fun PlayerScreen(controller: PlayerController, theme: Int, onThemeChange: (Int) -> Unit) {
     val state by controller.state.collectAsState()
     val currentItem = SampleItems.firstOrNull { it.id == state.currentItemId }
     var aspectRatio by remember { mutableStateOf(AspectRatios.first().second) }
@@ -93,6 +89,8 @@ fun PlayerScreen(controller: PlayerController) {
             onSelect = { aspectRatio = it },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         )
+
+        ThemeSwitch(theme, onThemeChange, Modifier.fillMaxWidth().padding(horizontal = 16.dp))
 
         DebugControls(controller, state, Modifier.padding(horizontal = 16.dp))
 
@@ -134,6 +132,21 @@ private fun AspectRatioSwitch(
     }
 }
 
+/** Switches the player theme while the video plays. */
+@Composable
+private fun ThemeSwitch(selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+    SingleChoiceSegmentedButtonRow(modifier) {
+        PlayerThemes.forEachIndexed { index, (label, _) ->
+            SegmentedButton(
+                selected = index == selected,
+                onClick = { onSelect(index) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = PlayerThemes.size),
+                icon = {},
+                label = { Text(label, fontSize = 12.sp) },
+            )
+        }
+    }
+}
 
 /** Test-only commands that the default controls don't cover. */
 @Composable

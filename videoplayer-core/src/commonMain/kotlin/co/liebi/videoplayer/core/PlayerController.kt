@@ -88,9 +88,11 @@ public interface PlayerController {
     public fun suspend()
 
     /**
-     * Shows this player in its coordinator's `FullscreenHost`, above all app content (§12). Item, position,
-     * play intent and settings are untouched. Does nothing and logs a warning when no host is placed
-     * ([PlayerState.isFullscreenAvailable]). Another player that is fullscreen returns inline.
+     * Switches [PlayerState.presentation] to [Presentation.Fullscreen] (§12). The app reacts by showing the
+     * player fullscreen, for example with `FullscreenVideoPlayer`; the library shows nothing by itself. Item,
+     * position, play intent and settings are untouched. Does nothing and logs a warning unless
+     * [PlayerConfiguration.fullscreenEnabled] is on. Another player of the coordinator that is fullscreen
+     * returns inline.
      */
     public fun enterFullscreen()
 
@@ -113,15 +115,47 @@ public fun interface SourceRefresher {
  * Creates an app-owned controller. The app calls [PlayerController.release] when done,
  * for example in `ViewModel.onCleared`. For players in lazy lists, prefer [rememberPlayerController].
  *
+ * ```
+ * val controller = PlayerController(items = listOf(video))
+ * ```
+ *
  * @param coordinator The coordinator this player belongs to (§14).
+ * @param items Set right away, as [PlayerController.setItems] does.
+ * @param selectedItemId Selected right away, as [PlayerController.selectItem] does: the first item unless
+ *   given, or `null` to select nothing yet. Whether it starts playing follows [PlaybackConfig.playOnItemSelected].
+ * @throws IllegalArgumentException if two items share an ID, or [selectedItemId] isn't one of them.
  */
 public fun PlayerController(
     configuration: PlayerConfiguration = PlayerConfiguration(),
     sourceRefresher: SourceRefresher? = null,
     coordinator: PlayerCoordinator = PlayerCoordinator.Default,
-): PlayerController = DefaultPlayerController(
-    configuration = configuration,
-    sourceRefresher = sourceRefresher,
-    engineFactory = { createPlatformEngine(configuration.buffering) },
-    coordinator = coordinator,
-)
+    items: List<MediaItem> = emptyList(),
+    selectedItemId: String? = items.firstOrNull()?.id,
+): PlayerController {
+    requireValidItems(items, selectedItemId)
+    return DefaultPlayerController(
+        configuration = configuration,
+        sourceRefresher = sourceRefresher,
+        engineFactory = { createPlatformEngine(configuration.buffering) },
+        coordinator = coordinator,
+    ).also { it.setInitialItems(items, selectedItemId) }
+}
+
+internal fun requireUniqueIds(items: List<MediaItem>) {
+    val duplicates = items.groupingBy { it.id }.eachCount().filterValues { it > 1 }.keys
+    require(duplicates.isEmpty()) { "Duplicate MediaItem ids: $duplicates" }
+}
+
+/** Checked before a controller is created, so invalid items never leave a registered player behind. */
+internal fun requireValidItems(items: List<MediaItem>, selectedItemId: String?) {
+    requireUniqueIds(items)
+    require(selectedItemId == null || items.any { it.id == selectedItemId }) {
+        "selectedItemId '$selectedItemId' is not one of the items"
+    }
+}
+
+/** Sets the items a controller is created with. Called once it is registered, so loading can count against the player cap. */
+internal fun PlayerController.setInitialItems(items: List<MediaItem>, selectedItemId: String?) {
+    if (items.isNotEmpty()) setItems(items)
+    if (selectedItemId != null) selectItem(selectedItemId)
+}

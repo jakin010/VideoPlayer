@@ -20,6 +20,7 @@ import co.liebi.videoplayer.core.VideoContentScale
 import co.liebi.videoplayer.core.VideoGestureState
 import co.liebi.videoplayer.core.VideoGestures
 import co.liebi.videoplayer.core.VideoPlayerSurface
+import co.liebi.videoplayer.core.VideoTransform
 import co.liebi.videoplayer.core.rememberVideoGestureState
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.delay
@@ -32,6 +33,8 @@ import kotlin.time.Duration.Companion.seconds
  * the top right, auto-hide, and the video gestures with their feedback. Every part is also available on its
  * own for custom layouts. The fullscreen button shows when `PlayerConfiguration.fullscreenEnabled` is on.
  *
+ * @param transform Pans, zooms and turns the video inside the player, see [VideoTransform]. Only this inline
+ *   player is transformed; fullscreen shows the whole video.
  * @param hideControlsAfter Controls hide this long after the last interaction while playing.
  * @param gestures The built-in gestures, each of which can be turned off. A single tap shows or hides the
  *   controls. Turn [VideoGestures.swipeToFullscreen] off in scrolling feeds, where swiping up should scroll.
@@ -48,6 +51,7 @@ public fun VideoPlayer(
     aspectRatio: VideoAspectRatio = VideoAspectRatio.Ratio16x9,
     contentScale: VideoContentScale = VideoContentScale.Crop,
     poster: @Composable () -> Unit = {},
+    transform: VideoTransform? = null,
     hideControlsAfter: Duration = 3.seconds,
     gestures: VideoGestures = VideoGestures(),
     customGestures: Modifier = Modifier,
@@ -65,6 +69,7 @@ public fun VideoPlayer(
             aspectRatio = aspectRatio,
             contentScale = contentScale,
             poster = poster,
+            transform = transform,
             gestures = gestures,
             gestureState = gestureState,
             onTap = visibility::toggle,

@@ -39,6 +39,7 @@ import co.liebi.videoplayer.core.PlayerController
 import co.liebi.videoplayer.core.PlayerEvent
 import co.liebi.videoplayer.core.PlayerState
 import co.liebi.videoplayer.core.VideoAspectRatio
+import co.liebi.videoplayer.core.VideoTransform
 import co.liebi.videoplayer.ui.VideoPlayer
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -70,6 +71,7 @@ fun PlayerScreen(controller: PlayerController, theme: Int, onThemeChange: (Int) 
     val state by controller.state.collectAsState()
     val currentItem = SampleItems.firstOrNull { it.id == state.currentItemId }
     var aspectRatio by remember { mutableStateOf(AspectRatios.first().second) }
+    var transform by remember { mutableStateOf<VideoTransform?>(null) }
 
     Column(
         modifier = Modifier
@@ -82,6 +84,7 @@ fun PlayerScreen(controller: PlayerController, theme: Int, onThemeChange: (Int) 
             modifier = Modifier.background(Color.Black),
             aspectRatio = aspectRatio,
             poster = { Poster(currentItem?.title) },
+            transform = transform,
         )
 
         AspectRatioSwitch(
@@ -89,6 +92,8 @@ fun PlayerScreen(controller: PlayerController, theme: Int, onThemeChange: (Int) 
             onSelect = { aspectRatio = it },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         )
+
+        TransformControls(transform, onChange = { transform = it }, Modifier.padding(horizontal = 16.dp))
 
         ThemeSwitch(theme, onThemeChange, Modifier.fillMaxWidth().padding(horizontal = 16.dp))
 

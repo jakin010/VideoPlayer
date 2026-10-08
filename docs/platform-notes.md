@@ -25,7 +25,7 @@ The emulator's goldfish H.264 decoders claim adaptive playback but corrupt frame
 
 Media3's `PlayerSurface` with a `SurfaceView` (cheapest on battery). A `SurfaceView` keeps its last frame until the next player draws, so `keepPreviousFrame` needs no work on Android. When a kept item becomes current again, ExoPlayer draws a fresh frame onto the surface even while paused, which reports the first frame again.
 
-A turned surface (`rotationDegrees` other than 0, the turned fullscreen view) uses a `TextureView` instead. The system composites a `SurfaceView` outside the view hierarchy, so Compose's graphics layers can't rotate it. The `TextureView` gets the same `turned` layout as the gesture layer: width and height swapped, placed with a rotated layer around the center. Turning to or from 0 switches the view type, which hands the player a new surface without preparing again.
+A turned surface (`rotationDegrees` other than 0, the turned fullscreen view) or one with a `VideoTransform` uses a `TextureView` instead. The system composites a `SurfaceView` outside the view hierarchy, so Compose's graphics layers can't rotate it. The `TextureView` gets the same `turned` layout as the gesture layer: width and height swapped, placed with a rotated layer around the center. Turning to or from 0, or setting or clearing a transform, switches the view type, which hands the player a new surface without preparing again. A `VideoTransform` is applied with a graphics layer around the area's center, outside the turn, so a changing transform only redraws.
 
 ### Application context
 
@@ -88,6 +88,7 @@ Cookies use the public `AVURLAssetHTTPCookiesKey`. Custom headers have no public
 - When the layer changes while `keepPrevious` is set, the old layer stays underneath, still showing its last frame, until the new layer has one (a new layer is transparent until then).
 - The host view's background is black: it is what letterbox bars of a fitted video show. A clear background showed thin white lines around the video in fullscreen.
 - `UIKitInteropProperties(isInteractive = false)` keeps the view out of touch handling and lets Compose content draw above it.
+- A `VideoTransform` is added to the same affine transform, after the turn: scale, rotation, then the translation from `resolveTransform`. With a transform the layer is sized to the whole video as the content scale shows it, not to the view: a layer crops the video at its own bounds, so moving a view-sized layer showed its edge instead of the video's. `Placement` holds everything that positions the layers, and any change to it places them again.
 - A turned surface sets the layer's affine transform to the rotation, its bounds to the turned frame (width and height swapped) and its position to the view's center. The frame of a transformed layer is undefined, so it is never set while turned. The same layer moves between surfaces, so every surface sets the transform each time it places the layer, the identity when not turned; otherwise the inline surface would keep the fullscreen view's turn.
 - `AVPlayerLayer.readyForDisplay` reports the first frame. When a kept item becomes current again, its layer already holds the frame, so unparking reports it again immediately.
 

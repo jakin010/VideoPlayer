@@ -32,6 +32,12 @@ val SampleItems = listOf(
     MuxHls,
     BigBuckBunnyMp4,
     MediaItem(
+        // Portrait, for testing the transform and auto-rotate with a 9:16 video.
+        id = "portrait",
+        source = MediaSource.Url("https://cdn.truefilesize.com/mp4/sample-portrait.mp4"),
+        title = "Portrait MP4 (9:16)",
+    ),
+    MediaItem(
         id = "broken",
         source = MediaSource.Url("https://test-streams.mux.dev/does-not-exist.m3u8"),
         title = "Broken URL (404)",

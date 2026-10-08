@@ -41,6 +41,9 @@ import kotlin.time.Duration.Companion.seconds
  * @param rotationDegrees Turns the video clockwise inside the area: 0, 90, 180 or 270. With
  *   [VideoAspectRatio.Native], the area takes the turned video's shape. The poster and the area are not turned;
  *   the gestures are, so a double tap on the video's right side seeks forward however it is turned.
+ * @param transform Pans, zooms and turns the video inside the area, see [VideoTransform]. On Android, a surface
+ *   with a transform draws into a `TextureView`, which costs a little more battery than the default
+ *   `SurfaceView`, so leave it `null` rather than passing an identity transform when there is none.
  * @param gestures The built-in gestures, each of which can be turned off; [VideoGestures.None] turns them all off.
  * @param gestureState What the gestures are doing, for feedback such as a seek indicator.
  * @param onTap Called for single taps, unless [VideoGestures.tap] is off. Without it, single taps are left alone.
@@ -57,6 +60,7 @@ public fun VideoPlayerSurface(
     poster: @Composable () -> Unit = {},
     posterDelay: Duration = DefaultPosterDelay,
     rotationDegrees: Int = 0,
+    transform: VideoTransform? = null,
     gestures: VideoGestures = VideoGestures(),
     gestureState: VideoGestureState = rememberVideoGestureState(),
     onTap: (() -> Unit)? = null,
@@ -84,6 +88,7 @@ public fun VideoPlayerSurface(
                 contentScale = contentScale,
                 keepPreviousFrame = !posterVisible.value && !state.isFirstFrameRendered,
                 rotation = rotation,
+                transform = transform,
             )
         } ?: false
         val videoVisible = isRendering && state.isFirstFrameRendered
@@ -127,6 +132,7 @@ private fun AttachedVideo(
     contentScale: VideoContentScale,
     keepPreviousFrame: Boolean,
     rotation: Int,
+    transform: VideoTransform?,
 ): Boolean {
     val token = remember(controller) { Any() }
     DisposableEffect(controller, token) {
@@ -143,6 +149,7 @@ private fun AttachedVideo(
         contentScale = contentScale,
         keepPreviousFrame = keepPreviousFrame,
         rotation = rotation,
+        transform = transform,
         modifier = Modifier.fillMaxSize(),
     )
     return isActive

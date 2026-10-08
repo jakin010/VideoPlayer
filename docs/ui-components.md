@@ -12,6 +12,7 @@ VideoPlayer(
     aspectRatio = VideoAspectRatio.Native,      // follow the video's shape
     contentScale = VideoContentScale.Crop,      // Fit, Crop or Fill
     poster = { MyPoster() },
+    transform = VideoTransform(zoom = 1.5f),    // pan, zoom and rotation, see Transform
     hideControlsAfter = 3.seconds,
     gestures = VideoGestures(),                 // each gesture can be turned off, see Gestures
     customGestures = Modifier,                  // the app's own gestures on the video
@@ -40,6 +41,7 @@ VideoPlayerSurface(
     poster = { MyPoster() },
     posterDelay = 1.seconds,
     rotationDegrees = 0,                       // 0, 90, 180 or 270, clockwise
+    transform = null,                          // pan, zoom and rotation, see Transform
     gestures = VideoGestures(),                // VideoGestures.None for a surface without gestures
     gestureState = rememberVideoGestureState(), // for feedback drawn on top
     onTap = { visibility.toggle() },           // what a single tap does
@@ -51,6 +53,36 @@ VideoPlayerSurface(
 - The poster covers the area until the first frame. When switching items, the last frame stays on screen and the poster only appears if the next first frame takes longer than `posterDelay`, so quick switches go straight from video to video.
 - `rotationDegrees` turns the video inside the area. With `Native`, the area takes the turned video's shape. The poster isn't turned; the gestures are, so they follow the video. `FullscreenVideoPlayer` uses it to turn the view, see [Fullscreen](fullscreen.md#turning-the-view).
 - On Android it uses a `SurfaceView` (cheapest on battery), or a `TextureView` while turned, because a `SurfaceView` can't be rotated. On iOS it uses an `AVPlayerLayer` in a `UIKitView`.
+
+## Transform
+
+`transform` on `VideoPlayer` and `VideoPlayerSurface` pans, zooms and turns the video inside the player, for example to frame a detail. The player keeps its size and place, and controls and gestures are unaffected. It applies to the inline player only: fullscreen always shows the whole video.
+
+```kotlin
+VideoPlayer(
+    controller,
+    aspectRatio = VideoAspectRatio.Ratio1x1,
+    transform = VideoTransform(panX = 0f, zoom = 1.5f, rotation = 10f),
+)
+```
+
+Every value is relative, so one transform suits any player and video size:
+
+| Value | Meaning |
+|---|---|
+| `panX`, `panY` | Where the video sits: 0 puts its left (`panX`) or top (`panY`) edge on the player's edge, 0.5 centers it, 1 puts its right or bottom edge on the player's edge, and values in between move it evenly. Out of bounds, values outside 0..1 move it further: -0.25 leaves a quarter of the video's width of background before its left edge, 1.25 after its right edge. |
+| `zoom` | 1 is the size the content scale gives; 2 shows the video twice as large |
+| `rotation` | Clockwise, in degrees |
+| `allowOutOfBounds` | Off by default: the values are limited so the video keeps covering the player. On: every value applies as given. |
+
+With `allowOutOfBounds` off, the transform never uncovers more of the player than the content scale does:
+
+- Zoom stays at 1 or more.
+- Pans stay within 0..1, so the video moves between its edges and never past them. A 16:9 video in a 1:1 player at 1x moves left and right, but its height exactly fills the player, so `panY` has no effect until you zoom in.
+- Rotation stops before a corner comes into view. At 1x that leaves no room to turn; zooming in allows more, so a rotation that didn't fit applies once the zoom makes room.
+- Along a side the video doesn't fill, such as the bars of `VideoContentScale.Fit`, panning moves it between the bars.
+
+The transform is a plain value: hold it in state and change it as often as needed, for example from sliders; the sample's Player tab has them. Leave it `null` when there is no transform. On Android a transformed player draws into a `TextureView`, which costs a little more battery than the default `SurfaceView`.
 
 ## Building your own layout
 

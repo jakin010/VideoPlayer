@@ -34,7 +34,7 @@ fun ErrorPreview() {
 
 | Suite | Where | Runs on |
 |---|---|---|
-| State machine, coordinator, buffer gate, seek zones | `videoplayer-core/src/commonTest` | JVM and the iOS simulator |
+| State machine, coordinator, buffer gate, seek zones, transform bounds | `videoplayer-core/src/commonTest` | JVM and the iOS simulator |
 | Auto-rotate rules, device tilt, theme equality and scrubber math | `videoplayer-ui/src/commonTest` | JVM and the iOS simulator |
 | Translations complete, with the same placeholders as English | `videoplayer-ui/src/androidHostTest` | JVM |
 | Controls, gestures (each switch and the app's own gestures), swipes and their feedback, fullscreen UI, turning the view and switching themes | `videoplayer-ui/src/iosTest` | The iOS simulator |

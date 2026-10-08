@@ -93,6 +93,15 @@ It resolves the controller in composition, keyed on `(key, coordinator, generati
 - In a turned view, the gesture box is turned with the video, so "down" means down for the video without any mapping.
 - `swipeFeedback` is set from the claim on and cleared in a `finally`, so it can't stay behind when the gesture is cancelled. `SwipeIndicator` eases the progress over 150 ms and keeps the last direction while fading out.
 
+## Video transform
+
+**Where:** `VideoTransform.kt` and `internal/TransformMath.kt`; applied in both `PlatformVideoSurface` actuals.
+
+- `resolveTransform` turns the relative values into a scale, a rotation and a translation, in the platform's units (pixels on Android, points on iOS). It takes the surface's turn too, so a turned video pans along its turned shape. Both platforms call it with their real area size, Android in the graphics layer's draw block and iOS when placing the layer, so the result never lags a frame behind the layout.
+- Everything is computed from a focus point: the point of the video, as shown by the content scale, that ends up at the area's center. The translation is minus the rotated, scaled offset of that point from the center. The pan aligns the video along each side: with `shown = span / zoomed length` and `start` the point of the video at the span's start, `start = pan · (1 − shown)` for pans in 0..1, so 0 puts the video's start on the area's start, 1 its end on the area's end and 0.5 centers it, for videos longer or shorter than the span alike. Out of bounds, a pan below 0 is the start itself (the video's start moves into the area by that much of its length) and one above 1 continues from `1 − shown` the same way. `focus = start + shown / 2`.
+- Bounds per side of the video: the area's corners, seen in the turned video's frame, span `w·|cos| + h·|sin|` along the video's width and `w·|sin| + h·|cos|` along its height. A side the zoomed video covers unturned must keep covering that span; that limits the rotation (bisection from 0 toward the requested angle). Within bounds the pan is clamped to 0..1, which keeps each covered side covered at that rotation.
+- The tolerance is a ten-thousandth of the area: enough for float rounding where the video exactly spans the area, too small to leave a visible sliver. A fixed half pixel showed hairlines of background at the corners.
+
 ## Turning the fullscreen view
 
 **Where:** `FullscreenContent` in `FullscreenVideoPlayer.kt`, `FullscreenRotation.kt`, and the platform surfaces.

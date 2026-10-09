@@ -6,6 +6,17 @@ It supports Android 7.0 (API 24) and iOS 17 and later.
 
 The [documentation](docs/README.md) explains the API, how to build with it, and the parts of the code that need extra care.
 
+## Features
+
+- One `PlayerController` with the same state, events and behavior on both platforms: buffering thresholds, seeking, playlists with remembered positions, automatic retries and credential refresh. See [The player controller](docs/player-controller.md).
+- `VideoPlayer` with default controls, auto-hide, and gestures that can each be turned off: tap, double-tap seek, hold to pause, swipe into and out of fullscreen, plus the app's own. See [UI components](docs/ui-components.md).
+- Pan, zoom and rotation of the inline video, within or beyond its bounds. See [Transform](docs/ui-components.md#transform).
+- Fullscreen that the app shows where it likes, with rotate buttons and auto-rotate to the video's shape, also under rotation lock. See [Fullscreen](docs/fullscreen.md).
+- `PlayerCoordinator` for feeds: single active player, a native player cap, players suspended and released as they scroll away. See [Feeds and the coordinator](docs/feeds-and-coordinator.md).
+- Muted playback that never interrupts other apps, audio focus, interruptions and backgrounding. See [Audio and system integration](docs/audio-and-system.md).
+- A theme for the colors and icons of the whole player UI, switchable at runtime, and strings in 22 languages.
+- `FakePlayerController` for app tests and previews. See [Testing](docs/testing.md).
+
 ## Usage
 
 ```kotlin
@@ -65,7 +76,7 @@ On iOS, Compose can't hide the status bar itself. The view hosting the Compose U
 | [`videoplayer-core`](videoplayer-core) | `co.liebi.videoplayer:videoplayer-core` | Public API (`PlayerController`, state, events, configuration), `VideoPlayerSurface`, and the platform playback engines (Media3 / AVFoundation). The common state machine is in `internal/DefaultPlayerController.kt` |
 | [`videoplayer-ui`](videoplayer-ui) | `co.liebi.videoplayer:videoplayer-ui` | Default controls, `VideoPlayer`, `FullscreenVideoPlayer`, the theme and localizable strings. Optional: apps with fully custom controls only need `videoplayer-core` |
 | [`videoplayer-test`](videoplayer-test) | `co.liebi.videoplayer:videoplayer-test` | Test doubles (`FakePlayerController`) for app tests and `@Preview` |
-| [`videoplayer-sample`](videoplayer-sample) | not published | Android and iOS test app. The Player tab has HLS, MP4 and a broken URL with live state and an event log. The Coordinator tab is a feed of five streams with single-active, cap and autoplay switches and the merged event log. The Checks tab runs the parity suite and the leak checks. All players start muted |
+| [`videoplayer-sample`](videoplayer-sample) | not published | Android and iOS test app. The Player tab has HLS, a landscape and a portrait MP4 and a broken URL, with aspect ratio, transform and theme switches, live state and an event log. The Coordinator tab is a feed of five streams with single-active, cap and autoplay switches and the merged event log. The Checks tab runs the parity suite and the leak checks. All players start muted |
 | [`build-logic`](build-logic) | not published | Gradle convention plugins |
 
 ```

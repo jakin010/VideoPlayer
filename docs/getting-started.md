@@ -87,5 +87,6 @@ See [Fullscreen](fullscreen.md) for other places to show it, such as a navigatio
 
 - Feeds or several players on one screen: [Feeds and the coordinator](feeds-and-coordinator.md).
 - Your own colors and icons, switchable at runtime: [the theme](ui-components.md#theme).
+- Panning, zooming or turning the inline video: [Transform](ui-components.md#transform).
 - Your own controls: [UI components](ui-components.md).
 - Reacting to playback (analytics, autoplay logic): [State and events](state-and-events.md).

@@ -57,8 +57,10 @@ Engines apply the start gating from `BufferingConfig` themselves:
 
 `VideoPlayerSurface` (common) attaches a token to the controller while composed. The controller tracks surfaces and makes the most recently attached one active. `PlatformVideoSurface` draws the engine's output:
 
-- Android: Media3's `PlayerSurface` with a `SurfaceView`, resized with `resizeWithContentScale`.
-- iOS: the engine owns one `AVPlayerLayer`, which moves into whichever `UIKitView` is active. The previous layer stays underneath until the new one has a frame, so video-to-video switches don't flash.
+- Android: Media3's `PlayerSurface` with a `SurfaceView`, resized with `resizeWithContentScale`. A turned or transformed video draws into a `TextureView` instead, because a `SurfaceView` can't be rotated.
+- iOS: the engine owns one `AVPlayerLayer`, which moves into whichever `UIKitView` is active. The previous layer stays underneath until the new one has a frame, so video-to-video switches don't flash. Turns and transforms are the layer's affine transform.
+
+A `VideoTransform` (pan, zoom, rotation) is resolved by shared math in `internal/TransformMath.kt`, so both platforms place the video identically; each applies the result to its own view.
 
 Because the layer or player moves between surfaces, a handoff (scrolling, fullscreen) never prepares the item again.
 

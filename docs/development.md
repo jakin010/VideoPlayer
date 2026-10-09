@@ -38,11 +38,11 @@ The Xcode build runs Gradle to embed the shared Kotlin framework.
 
 | Tab | Shows |
 |---|---|
-| Player | One app-owned player with HLS, MP4 and a broken URL; aspect ratio switch, debug buttons, live state and the event log |
+| Player | One app-owned player with HLS, a landscape and a portrait (9:16) MP4 and a broken URL; aspect ratio switch, pan, zoom and rotation sliders with an out-of-bounds switch, the theme switch, debug buttons, live state and the event log |
 | Coordinator | A feed of five streams with single-active, player cap and autoplay switches, player counts and the merged event log |
 | Checks | The parity suite and the leak checks, see [Testing](testing.md#checks-on-the-real-engines) |
 
-All sample players start muted. The test media are public streams (Mux, Unified Streaming, Apple, test-videos.co.uk); one of Apple's streams is plain HTTP, which the sample allows for that host only.
+All sample players start muted. The test media are public streams and files (Mux, Unified Streaming, Apple, test-videos.co.uk, truefilesize.com); one of Apple's streams is plain HTTP, which the sample allows for that host only.
 
 ## Devices
 
